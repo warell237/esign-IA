@@ -103,7 +103,7 @@ export default function PaymentModal({ userId, isOpen, onClose, onSuccess }) {
         {/* Titre */}
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <img
-            src="/icône PWA 192x192.png"
+            src="/icon-192.png"
             alt="ESIGN"
             style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'contain', marginBottom: 12 }}
           />

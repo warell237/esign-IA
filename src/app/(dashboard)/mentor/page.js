@@ -45,7 +45,7 @@ export default function MentorPage({ user, userData }) {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <img src="/icône PWA 192x192.png" alt="ESIGN" style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'contain' }} />
+              <img src="/icon-192.png" alt="ESIGN" style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'contain' }} />
               <span style={{ color: c.text, fontSize: 17, fontWeight: 700 }}>Coaching Personnalise</span>
             </div>
             <span style={{ color: c.text2, fontSize: 12 }}>

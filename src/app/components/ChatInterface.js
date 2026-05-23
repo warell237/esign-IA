@@ -47,6 +47,7 @@ export default function ChatInterface({
   suggestions = [],
 }) {
   const theme = THEMES[mode] || THEMES.chat;
+  const [isMobile, setIsMobile] = useState(false);
 
   const c = {
     border: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
@@ -67,9 +68,19 @@ export default function ChatInterface({
   const [error, setError] = useState('');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   }, [messages]);
 
   const handleSend = async () => {
@@ -110,14 +121,12 @@ export default function ChatInterface({
     }
   };
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
-
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif', minHeight: 0 }}>
       
       {showQuota && quota && (
         <div style={{
-          padding: '6px 14px', textAlign: 'center',
+          padding: '6px 14px', textAlign: 'center', flexShrink: 0,
           background: isDark ? 'rgba(68,136,255,0.1)' : 'rgba(68,136,255,0.05)',
           color: theme.accent, fontSize: 11, borderBottom: `1px solid ${c.border}`,
         }}>
@@ -130,7 +139,7 @@ export default function ChatInterface({
       {error && (
         <div style={{
           padding: '10px 14px', background: 'rgba(255,68,85,0.1)', color: '#ff4455',
-          fontSize: 12, textAlign: 'center', borderBottom: '1px solid rgba(255,68,85,0.2)',
+          fontSize: 12, textAlign: 'center', borderBottom: '1px solid rgba(255,68,85,0.2)', flexShrink: 0,
         }}>
           {error}
           <button onClick={() => setError('')} style={{
@@ -140,26 +149,32 @@ export default function ChatInterface({
         </div>
       )}
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '12px 12px' : '20px 24px' }}>
+      {/* Zone messages avec scroll */}
+      <div ref={messagesContainerRef} style={{
+        flex: 1, overflowY: 'auto', padding: isMobile ? '12px 10px' : '20px 20px',
+        WebkitOverflowScrolling: 'touch',
+        minHeight: 0,
+      }}>
         
         {messages.length === 0 && (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', height: '100%', textAlign: 'center',
+            justifyContent: 'center', minHeight: '100%', textAlign: 'center',
+            padding: '20px 0',
           }}>
             <img
-              src="/icône PWA 192x192.png"
+              src="/icon-192.png"
               alt="ESIGN"
-              style={{ width: 56, height: 56, borderRadius: 14, objectFit: 'contain', marginBottom: 16 }}
+              style={{ width: isMobile ? 48 : 56, height: isMobile ? 48 : 56, borderRadius: 14, objectFit: 'contain', marginBottom: 16 }}
             />
-            <h1 style={{ color: c.text, fontSize: 18, fontWeight: 700, marginBottom: 6 }}>
+            <h1 style={{ color: c.text, fontSize: isMobile ? 16 : 18, fontWeight: 700, marginBottom: 6 }}>
               {theme.welcomeTitle}
             </h1>
-            <p style={{ color: c.mute, fontSize: 13, maxWidth: 380, lineHeight: 1.6, marginBottom: 18 }}>
+            <p style={{ color: c.mute, fontSize: isMobile ? 12 : 13, maxWidth: 360, lineHeight: 1.6, marginBottom: 18, padding: '0 8px' }}>
               {theme.welcomeText}
             </p>
             {suggestions.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', maxWidth: 440 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', maxWidth: 440, padding: '0 8px' }}>
                 {suggestions.map((s, i) => (
                   <button
                     key={i}
@@ -168,7 +183,7 @@ export default function ChatInterface({
                       padding: '8px 14px', borderRadius: 20,
                       border: `1px solid ${c.border}`, background: 'transparent',
                       color: c.text2, fontSize: 12, cursor: 'pointer',
-                      transition: 'all 0.2s',
+                      transition: 'all 0.2s', whiteSpace: 'nowrap',
                     }}
                     onMouseEnter={e => { e.target.style.borderColor = theme.accent; e.target.style.color = theme.accent; }}
                     onMouseLeave={e => { e.target.style.borderColor = c.border; e.target.style.color = c.text2; }}
@@ -188,18 +203,18 @@ export default function ChatInterface({
           }}>
             {msg.role === 'ai' && (
               <img
-                src="/icône PWA 192x192.png"
+                src="/icon-192.png"
                 alt="ESIGN"
-                style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'contain', flexShrink: 0, marginRight: 8, marginTop: 2 }}
+                style={{ width: 26, height: 26, borderRadius: 6, objectFit: 'contain', flexShrink: 0, marginRight: 8, marginTop: 2 }}
               />
             )}
             <div style={{
-              maxWidth: isMobile ? '85%' : '70%', padding: '10px 14px',
+              maxWidth: isMobile ? '88%' : '72%', padding: '10px 14px',
               borderRadius: msg.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
               background: msg.role === 'user' ? c.userBubble : c.aiBg,
               color: msg.role === 'user' ? 'white' : c.text, fontSize: 13.5, lineHeight: 1.6,
               border: msg.role === 'ai' ? `1px solid ${c.aiBorder}` : 'none',
-              wordBreak: 'break-word',
+              wordBreak: 'break-word', overflowWrap: 'break-word',
             }}>
               {msg.content}
             </div>
@@ -209,9 +224,9 @@ export default function ChatInterface({
         {loading && (
           <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 10 }}>
             <img
-              src="/icône PWA 192x192.png"
+              src="/icon-192.png"
               alt="ESIGN"
-              style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'contain', marginRight: 8 }}
+              style={{ width: 26, height: 26, borderRadius: 6, objectFit: 'contain', marginRight: 8 }}
             />
             <div style={{
               padding: '12px 18px', borderRadius: '14px 14px 14px 4px',
@@ -227,14 +242,14 @@ export default function ChatInterface({
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
-      <div style={{ padding: isMobile ? '8px 10px 12px' : '12px 16px 18px', flexShrink: 0 }}>
+      {/* Input fixe en bas */}
+      <div style={{ padding: isMobile ? '6px 8px 8px' : '12px 16px 16px', flexShrink: 0 }}>
         <div style={{
-          maxWidth: 720, margin: '0 auto', display: 'flex', alignItems: 'flex-end', gap: 8,
+          width: '100%', maxWidth: 720, margin: '0 auto', display: 'flex', alignItems: 'flex-end', gap: 8,
           background: c.inputBg, borderRadius: 18, border: `1.5px solid ${c.inputBorder}`,
-          padding: '5px 5px 5px 18px',
+          padding: '4px 4px 4px 16px',
         }}>
           <textarea
             ref={inputRef}
@@ -245,7 +260,7 @@ export default function ChatInterface({
             rows={1}
             style={{
               flex: 1, border: 'none', outline: 'none', background: 'transparent',
-              color: c.text, fontSize: 14, resize: 'none', maxHeight: 120,
+              color: c.text, fontSize: isMobile ? 13 : 14, resize: 'none', maxHeight: 100,
               fontFamily: 'inherit', padding: '8px 0',
             }}
           />
@@ -253,7 +268,7 @@ export default function ChatInterface({
             onClick={handleSend}
             disabled={!input.trim() || loading}
             style={{
-              width: 38, height: 38, borderRadius: 12, border: 'none',
+              width: 36, height: 36, borderRadius: 12, border: 'none',
               background: input.trim() ? theme.accentGradient : 'transparent',
               color: input.trim() ? 'white' : c.mute,
               cursor: input.trim() ? 'pointer' : 'not-allowed',
@@ -262,12 +277,12 @@ export default function ChatInterface({
               boxShadow: input.trim() ? `0 4px 14px ${theme.accent}40` : 'none',
             }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
               <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
             </svg>
           </button>
         </div>
-        <p style={{ textAlign: 'center', color: c.mute, fontSize: 10, marginTop: 8 }}>
+        <p style={{ textAlign: 'center', color: c.mute, fontSize: 9, marginTop: 6 }}>
           ESIGN AI peut faire des erreurs. Verifiez les informations importantes.
         </p>
       </div>

@@ -54,7 +54,7 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div style={{
-      height: '100vh', width: '100vw', display: 'flex', position: 'relative',
+      height: '100dvh', width: '100%', display: 'flex', position: 'relative',
       background: isDark ? '#000010' : '#f2f5ff', overflow: 'hidden',
     }}>
       <ChatBackground />
@@ -113,7 +113,7 @@ export default function DashboardLayout({ children }) {
               <Link href="/chat" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, textDecoration: 'none' }}
                 onClick={() => isMobile && setSidebarOpen(false)}>
                 <img
-                  src="/icône PWA 192x192.png"
+                  src="/icon-192.png"
                   alt="ESIGN"
                   style={{
                     width: 28, height: 28, borderRadius: 6,
@@ -315,7 +315,7 @@ export default function DashboardLayout({ children }) {
           {/* Logo + titre (toujours visible) */}
           <Link href="/chat" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
             <img
-              src="/icône PWA 192x192.png"
+              src="/icon-192.png"
               alt="ESIGN"
               style={{
                 width: 28, height: 28, borderRadius: 6,
@@ -342,7 +342,15 @@ export default function DashboardLayout({ children }) {
         </div>
 
         {/* Pages */}
-        <div style={{ flex: 1, overflow: 'hidden', position: 'relative', zIndex: 1 }}>
+        <div style={{ 
+            flex: 1, 
+           overflow: 'hidden', 
+            position: 'relative', 
+            zIndex: 1,
+  maxWidth: 900,
+  margin: '0 auto',
+  width: '100%',
+}}>
           {children}
         </div>
       </div>

@@ -67,7 +67,7 @@ export default function SubscriptionPage({ user, userData }) {
         {/* Entete */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <img
-            src="/icône PWA 192x192.png"
+            src="/icon-192.png"
             alt="ESIGN"
             style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'contain', marginBottom: 16 }}
           />
