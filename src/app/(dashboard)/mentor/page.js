@@ -38,7 +38,7 @@ export default function MentorPage({ user, userData }) {
     <SubscriptionGuard userId={user?.uid}>
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif' }}>
         
-        {/* Bandeau */}
+        {/* Bandeau - FIXE */}
         <div style={{
           padding: '16px 20px', borderBottom: `1px solid ${c.border}`,
           background: c.bgCard, backdropFilter: 'blur(20px)', flexShrink: 0,

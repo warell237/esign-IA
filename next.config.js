@@ -3,14 +3,21 @@
 // ============================================
 
 /** @type {import('next').NextConfig} */
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development',
+});
+
 const nextConfig = {
   // Activer le mode strict React (détecte les problèmes)
   reactStrictMode: true,
-  
-   images: {
+
+  images: {
     domains: ['hcaptcha.com'],
   },
-  
+
   // Configuration PWA
   headers: async () => [
     {
@@ -33,4 +40,4 @@ const nextConfig = {
   ],
 };
 
-module.exports = nextConfig;
+module.exports = withPWA(nextConfig);

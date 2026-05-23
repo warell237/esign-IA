@@ -66,9 +66,8 @@ export default function ChatInterface({
   const [loading, setLoading] = useState(false);
   const [quota, setQuota] = useState(null);
   const [error, setError] = useState('');
-  const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
@@ -82,6 +81,22 @@ export default function ChatInterface({
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Empecher le resize sur mobile quand clavier ouvert
+  useEffect(() => {
+    const handleFocus = () => {
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
+      }, 300);
+    };
+    const input = inputRef.current;
+    if (input) {
+      input.addEventListener('focus', handleFocus);
+      return () => input.removeEventListener('focus', handleFocus);
+    }
+  }, []);
 
   const handleSend = async () => {
     const text = input.trim();
@@ -149,11 +164,11 @@ export default function ChatInterface({
         </div>
       )}
 
-      {/* Zone messages avec scroll */}
+      {/* Zone messages - SEULE zone qui scroll */}
       <div ref={messagesContainerRef} style={{
         flex: 1, overflowY: 'auto', padding: isMobile ? '12px 10px' : '20px 20px',
-        WebkitOverflowScrolling: 'touch',
-        minHeight: 0,
+        WebkitOverflowScrolling: 'touch', minHeight: 0,
+        overscrollBehavior: 'contain',
       }}>
         
         {messages.length === 0 && (
@@ -162,32 +177,16 @@ export default function ChatInterface({
             justifyContent: 'center', minHeight: '100%', textAlign: 'center',
             padding: '20px 0',
           }}>
-            <img
-              src="/icon-192.png"
-              alt="ESIGN"
-              style={{ width: isMobile ? 48 : 56, height: isMobile ? 48 : 56, borderRadius: 14, objectFit: 'contain', marginBottom: 16 }}
-            />
-            <h1 style={{ color: c.text, fontSize: isMobile ? 16 : 18, fontWeight: 700, marginBottom: 6 }}>
-              {theme.welcomeTitle}
-            </h1>
-            <p style={{ color: c.mute, fontSize: isMobile ? 12 : 13, maxWidth: 360, lineHeight: 1.6, marginBottom: 18, padding: '0 8px' }}>
-              {theme.welcomeText}
-            </p>
+            <img src="/icon-192.png" alt="ESIGN" style={{ width: isMobile ? 48 : 56, height: isMobile ? 48 : 56, borderRadius: 14, objectFit: 'contain', marginBottom: 16 }} />
+            <h1 style={{ color: c.text, fontSize: isMobile ? 16 : 18, fontWeight: 700, marginBottom: 6 }}>{theme.welcomeTitle}</h1>
+            <p style={{ color: c.mute, fontSize: isMobile ? 12 : 13, maxWidth: 360, lineHeight: 1.6, marginBottom: 18, padding: '0 8px' }}>{theme.welcomeText}</p>
             {suggestions.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', maxWidth: 440, padding: '0 8px' }}>
                 {suggestions.map((s, i) => (
-                  <button
-                    key={i}
-                    onClick={() => { setInput(s); inputRef.current?.focus(); }}
-                    style={{
-                      padding: '8px 14px', borderRadius: 20,
-                      border: `1px solid ${c.border}`, background: 'transparent',
-                      color: c.text2, fontSize: 12, cursor: 'pointer',
-                      transition: 'all 0.2s', whiteSpace: 'nowrap',
-                    }}
+                  <button key={i} onClick={() => { setInput(s); inputRef.current?.focus(); }}
+                    style={{ padding: '8px 14px', borderRadius: 20, border: `1px solid ${c.border}`, background: 'transparent', color: c.text2, fontSize: 12, cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap' }}
                     onMouseEnter={e => { e.target.style.borderColor = theme.accent; e.target.style.color = theme.accent; }}
-                    onMouseLeave={e => { e.target.style.borderColor = c.border; e.target.style.color = c.text2; }}
-                  >
+                    onMouseLeave={e => { e.target.style.borderColor = c.border; e.target.style.color = c.text2; }}>
                     {s}
                   </button>
                 ))}
@@ -197,16 +196,9 @@ export default function ChatInterface({
         )}
 
         {messages.map(msg => (
-          <div key={msg.id} style={{
-            display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-            marginBottom: 10, animation: 'msgIn 0.25s ease',
-          }}>
+          <div key={msg.id} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 10, animation: 'msgIn 0.25s ease' }}>
             {msg.role === 'ai' && (
-              <img
-                src="/icon-192.png"
-                alt="ESIGN"
-                style={{ width: 26, height: 26, borderRadius: 6, objectFit: 'contain', flexShrink: 0, marginRight: 8, marginTop: 2 }}
-              />
+              <img src="/icon-192.png" alt="ESIGN" style={{ width: 26, height: 26, borderRadius: 6, objectFit: 'contain', flexShrink: 0, marginRight: 8, marginTop: 2 }} />
             )}
             <div style={{
               maxWidth: isMobile ? '88%' : '72%', padding: '10px 14px',
@@ -215,36 +207,23 @@ export default function ChatInterface({
               color: msg.role === 'user' ? 'white' : c.text, fontSize: 13.5, lineHeight: 1.6,
               border: msg.role === 'ai' ? `1px solid ${c.aiBorder}` : 'none',
               wordBreak: 'break-word', overflowWrap: 'break-word',
-            }}>
-              {msg.content}
-            </div>
+            }}>{msg.content}</div>
           </div>
         ))}
 
         {loading && (
           <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 10 }}>
-            <img
-              src="/icon-192.png"
-              alt="ESIGN"
-              style={{ width: 26, height: 26, borderRadius: 6, objectFit: 'contain', marginRight: 8 }}
-            />
-            <div style={{
-              padding: '12px 18px', borderRadius: '14px 14px 14px 4px',
-              background: c.aiBg, border: `1px solid ${c.aiBorder}`,
-              display: 'flex', gap: 4,
-            }}>
+            <img src="/icon-192.png" alt="ESIGN" style={{ width: 26, height: 26, borderRadius: 6, objectFit: 'contain', marginRight: 8 }} />
+            <div style={{ padding: '12px 18px', borderRadius: '14px 14px 14px 4px', background: c.aiBg, border: `1px solid ${c.aiBorder}`, display: 'flex', gap: 4 }}>
               {[0, 1, 2].map(i => (
-                <span key={i} style={{
-                  width: 6, height: 6, borderRadius: '50%', background: theme.accent,
-                  animation: `bounce 1.4s infinite ${i * 0.2}s`,
-                }} />
+                <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: theme.accent, animation: `bounce 1.4s infinite ${i * 0.2}s` }} />
               ))}
             </div>
           </div>
         )}
       </div>
 
-      {/* Input fixe en bas */}
+      {/* Input fixe en bas - ne bouge pas */}
       <div style={{ padding: isMobile ? '6px 8px 8px' : '12px 16px 16px', flexShrink: 0 }}>
         <div style={{
           width: '100%', maxWidth: 720, margin: '0 auto', display: 'flex', alignItems: 'flex-end', gap: 8,
@@ -264,9 +243,7 @@ export default function ChatInterface({
               fontFamily: 'inherit', padding: '8px 0',
             }}
           />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || loading}
+          <button onClick={handleSend} disabled={!input.trim() || loading}
             style={{
               width: 36, height: 36, borderRadius: 12, border: 'none',
               background: input.trim() ? theme.accentGradient : 'transparent',
@@ -275,11 +252,8 @@ export default function ChatInterface({
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0, opacity: input.trim() ? 1 : 0.4,
               boxShadow: input.trim() ? `0 4px 14px ${theme.accent}40` : 'none',
-            }}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-            </svg>
+            }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
           </button>
         </div>
         <p style={{ textAlign: 'center', color: c.mute, fontSize: 9, marginTop: 6 }}>
