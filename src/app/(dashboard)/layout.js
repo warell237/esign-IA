@@ -239,7 +239,12 @@ export default function DashboardLayout({ children }) {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, height: '100%', overflow: 'hidden' }}>
         {/* Header top */}
         <div style={{
-          padding: '10px 14px', flexShrink: 0,
+          padding: '10px 14px', 
+          flexShrink: 0,
+          position: 'sticky', 
+          top: 0, 
+          left: 0,
+          zIndex: 10,
           borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
           background: isDark ? 'rgba(8,8,32,0.8)' : 'rgba(255,255,255,0.8)',
           backdropFilter: 'blur(20px)',

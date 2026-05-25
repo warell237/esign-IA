@@ -36,12 +36,18 @@ export default function MentorPage({ user, userData }) {
 
   return (
     <SubscriptionGuard userId={user?.uid}>
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif' }}>
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif',overflow: 'hidden' }}>
         
         {/* Bandeau - FIXE */}
         <div style={{
-          padding: '16px 20px', borderBottom: `1px solid ${c.border}`,
-          background: c.bgCard, backdropFilter: 'blur(20px)', flexShrink: 0,
+          padding: '16px 20px',
+           borderBottom: `1px solid ${c.border}`,
+          background: c.bgCard, 
+          backdropFilter: 'blur(20px)', 
+          flexShrink: 0,
+          position: 'sticky',  
+          top: 0,             
+          zIndex: 5,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

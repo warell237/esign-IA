@@ -48,6 +48,7 @@ export default function ChatInterface({
 }) {
   const theme = THEMES[mode] || THEMES.chat;
   const [isMobile, setIsMobile] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
 
   const c = {
     border: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
@@ -66,6 +67,7 @@ export default function ChatInterface({
   const [loading, setLoading] = useState(false);
   const [quota, setQuota] = useState(null);
   const [error, setError] = useState('');
+  const [showMenu, setShowMenu] = useState(false);
   const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -81,22 +83,6 @@ export default function ChatInterface({
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   }, [messages]);
-
-  useEffect(() => {
-    const el = inputRef.current;
-    if (!el) return;
-    const handleFocus = () => {
-      setTimeout(() => {
-        if (messagesContainerRef.current) {
-          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-        }
-        // Force scroll de l'input dans la vue sur iOS
-        el.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      }, 350);
-    };
-    el.addEventListener('focus', handleFocus);
-    return () => el.removeEventListener('focus', handleFocus);
-  }, []);
 
   const handleSend = async () => {
     const text = input.trim();
@@ -136,16 +122,23 @@ export default function ChatInterface({
     }
   };
 
-  return (
-    <div style={{
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      fontFamily: 'Arial, sans-serif',
-      minHeight: 0,
-      overflow: 'hidden',   // ← AJOUTÉ
-    }}>
+  const handleFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setMessages(prev => [...prev, {
+      role: 'user',
+      content: `[Fichier: ${file.name}]`,
+      id: Date.now(),
+      file: file,
+    }]);
+  };
 
+  const startRecording = () => setIsRecording(true);
+  const stopRecording = () => setIsRecording(false);
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif', minHeight: 0, overflow: 'hidden' }}>
+      
       {showQuota && quota && (
         <div style={{
           padding: '6px 14px', textAlign: 'center', flexShrink: 0,
@@ -164,29 +157,17 @@ export default function ChatInterface({
           fontSize: 12, textAlign: 'center', borderBottom: '1px solid rgba(255,68,85,0.2)', flexShrink: 0,
         }}>
           {error}
-          <button onClick={() => setError('')} style={{
-            marginLeft: 8, textDecoration: 'underline', color: '#ff4455',
-            background: 'none', border: 'none', cursor: 'pointer',
-          }}>Fermer</button>
+          <button onClick={() => setError('')} style={{ marginLeft: 8, textDecoration: 'underline', color: '#ff4455', background: 'none', border: 'none', cursor: 'pointer' }}>Fermer</button>
         </div>
       )}
 
-      {/* Zone messages - SEULE zone qui scroll */}
       <div ref={messagesContainerRef} style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: isMobile ? '12px 10px' : '20px 20px',
-        WebkitOverflowScrolling: 'touch',
-        minHeight: 0,
-        overscrollBehavior: 'contain',
+        flex: 1, overflowY: 'auto', padding: isMobile ? '12px 10px' : '20px 20px',
+        WebkitOverflowScrolling: 'touch', minHeight: 0, overscrollBehavior: 'contain',
       }}>
-
+        
         {messages.length === 0 && (
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', minHeight: '100%', textAlign: 'center',
-            padding: '20px 0',
-          }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100%', textAlign: 'center', padding: '20px 0' }}>
             <img src="/icon-192.png" alt="ESIGN" style={{ width: isMobile ? 48 : 56, height: isMobile ? 48 : 56, borderRadius: 14, objectFit: 'contain', marginBottom: 16 }} />
             <h1 style={{ color: c.text, fontSize: isMobile ? 16 : 18, fontWeight: 700, marginBottom: 6 }}>{theme.welcomeTitle}</h1>
             <p style={{ color: c.mute, fontSize: isMobile ? 12 : 13, maxWidth: 360, lineHeight: 1.6, marginBottom: 18, padding: '0 8px' }}>{theme.welcomeText}</p>
@@ -233,39 +214,48 @@ export default function ChatInterface({
         )}
       </div>
 
-      {/* Input fixe en bas */}
+      {/* Input */}
       <div style={{ padding: isMobile ? '6px 8px 8px' : '12px 16px 16px', flexShrink: 0 }}>
         <div style={{
-          width: '100%', maxWidth: 720, margin: '0 auto', display: 'flex', alignItems: 'flex-end', gap: 8,
+          width: '100%', maxWidth: 720, margin: '0 auto', display: 'flex', alignItems: 'flex-end', gap: 6,
           background: c.inputBg, borderRadius: 18, border: `1.5px solid ${c.inputBorder}`,
-          padding: '4px 4px 4px 16px',
+          padding: '4px 4px 4px 8px',
         }}>
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
+          
+          {/* Bouton + */}
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <button onClick={() => setShowMenu(!showMenu)}
+              style={{ width: 34, height: 34, borderRadius: 12, border: 'none', background: 'transparent', color: c.mute, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            {showMenu && (
+              <div style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: 8, padding: 8, borderRadius: 12, minWidth: 170, background: isDark ? 'rgba(8,8,32,0.95)' : 'rgba(255,255,255,0.95)', border: `1px solid ${c.border}`, backdropFilter: 'blur(20px)', display: 'flex', flexDirection: 'column', gap: 2, zIndex: 20 }}>
+                <button onClick={() => { document.getElementById('file-upload').click(); setShowMenu(false); }} style={{ padding: '10px 12px', borderRadius: 8, border: 'none', background: 'transparent', color: c.text2, cursor: 'pointer', textAlign: 'left', fontSize: 13 }}>Importer un fichier</button>
+                <button onClick={() => { document.getElementById('camera-upload').click(); setShowMenu(false); }} style={{ padding: '10px 12px', borderRadius: 8, border: 'none', background: 'transparent', color: c.text2, cursor: 'pointer', textAlign: 'left', fontSize: 13 }}>Prendre une photo</button>
+                <button onClick={() => { document.getElementById('gallery-upload').click(); setShowMenu(false); }} style={{ padding: '10px 12px', borderRadius: 8, border: 'none', background: 'transparent', color: c.text2, cursor: 'pointer', textAlign: 'left', fontSize: 13 }}>Galerie</button>
+              </div>
+            )}
+          </div>
+
+          <input type="file" accept="image/*,.pdf,.doc,.docx,.txt" style={{ display: 'none' }} id="file-upload" onChange={handleFile} />
+          <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} id="camera-upload" onChange={handleFile} />
+          <input type="file" accept="image/*" style={{ display: 'none' }} id="gallery-upload" onChange={handleFile} />
+
+          <textarea ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-            placeholder={placeholder}
-            rows={1}
-            style={{
-              flex: 1, border: 'none', outline: 'none', background: 'transparent',
-              color: c.text,
-              fontSize: 16,          // ← 16px minimum pour éviter zoom iOS
-              resize: 'none', maxHeight: 100,
-              fontFamily: 'inherit', padding: '8px 0',
-            }}
-          />
+            placeholder={placeholder} rows={1}
+            style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', color: c.text, fontSize: 16, resize: 'none', maxHeight: 100, fontFamily: 'inherit', padding: '8px 0' }} />
+
+          {/* Micro */}
+          <button onMouseDown={startRecording} onMouseUp={stopRecording} onTouchStart={startRecording} onTouchEnd={stopRecording}
+            style={{ width: 34, height: 34, borderRadius: 12, border: 'none', background: isRecording ? '#ff4455' : 'transparent', color: isRecording ? 'white' : c.mute, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="1" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0014 0"/></svg>
+          </button>
+
+          {/* Envoyer */}
           <button onClick={handleSend} disabled={!input.trim() || loading}
-            style={{
-              width: 36, height: 36, borderRadius: 12, border: 'none',
-              background: input.trim() ? theme.accentGradient : 'transparent',
-              color: input.trim() ? 'white' : c.mute,
-              cursor: input.trim() ? 'pointer' : 'not-allowed',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0, opacity: input.trim() ? 1 : 0.4,
-              boxShadow: input.trim() ? `0 4px 14px ${theme.accent}40` : 'none',
-            }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
+            style={{ width: 34, height: 34, borderRadius: 12, border: 'none', background: input.trim() ? theme.accentGradient : 'transparent', color: input.trim() ? 'white' : c.mute, cursor: input.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: input.trim() ? 1 : 0.4, boxShadow: input.trim() ? `0 4px 14px ${theme.accent}40` : 'none' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
           </button>
         </div>
         <p style={{ textAlign: 'center', color: c.mute, fontSize: 9, marginTop: 6 }}>
