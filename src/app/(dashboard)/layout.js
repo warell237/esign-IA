@@ -235,7 +235,7 @@ export default function DashboardLayout({ children }) {
       {/* CONTENU PRINCIPAL */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, height: '100%', overflow: 'hidden' }}>
 
-        {/* ✅ HEADER GÉNÉRAL — position fixed, ne bouge JAMAIS */}
+        
         <div style={{
           position: 'fixed',
           top: 0,

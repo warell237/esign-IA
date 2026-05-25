@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import ChatInterface from '../../components/ChatInterface';
 import SubscriptionGuard from '../../components/SubscriptionGuard';
 import { useTheme } from '../../providers';
 
+const HEADER_GENERAL = 48;
+
 export default function MentorPage({ user, userData }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const bandeauRef = useRef(null);
+  const [bandeauHeight, setBandeauHeight] = useState(160);
 
   const [progress] = useState({
     sessionsCompleted: 12,
@@ -20,7 +24,7 @@ export default function MentorPage({ user, userData }) {
     'Comment organiser mes revisions ?',
     'Aide-moi a fixer des objectifs',
     'Je veux ameliorer ma moyenne en algorithmique',
-    'Plan d\'etude pour les examens',
+    "Plan d'etude pour les examens",
     'Conseils pour rester motive',
     'Gerer mon temps entre cours et projets',
   ];
@@ -31,24 +35,40 @@ export default function MentorPage({ user, userData }) {
     text2: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)',
     mute: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
     accent: '#00cc88',
-    bgCard: isDark ? 'rgba(8,8,32,0.8)' : 'rgba(255,255,255,0.8)',
+    bgCard: isDark ? 'rgba(8,8,32,0.95)' : 'rgba(255,255,255,0.95)',
   };
+
+  useEffect(() => {
+    if (!bandeauRef.current) return;
+    const observer = new ResizeObserver(() => {
+      setBandeauHeight(bandeauRef.current?.offsetHeight || 160);
+    });
+    observer.observe(bandeauRef.current);
+    setBandeauHeight(bandeauRef.current.offsetHeight);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <SubscriptionGuard userId={user?.uid}>
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif',overflow: 'hidden' }}>
-        
-        {/* Bandeau - FIXE */}
-        <div style={{
-          padding: '16px 20px',
-           borderBottom: `1px solid ${c.border}`,
-          background: c.bgCard, 
-          backdropFilter: 'blur(20px)', 
-          flexShrink: 0,
-          position: 'sticky',  
-          top: 0,             
-          zIndex: 10,
-        }}>
+      <div style={{ height: '100%', position: 'relative', fontFamily: 'Arial, sans-serif' }}>
+
+        {/* BANDEAU FIXE */}
+        <div
+          ref={bandeauRef}
+          style={{
+            position: 'fixed',
+            top: HEADER_GENERAL,
+            left: 0,
+            right: 0,
+            zIndex: 30,
+            padding: '16px 20px',
+            borderBottom: `1px solid ${c.border}`,
+            background: c.bgCard,
+            backdropFilter: 'blur(20px)',
+            transform: 'translateZ(0)',
+            WebkitTransform: 'translateZ(0)',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <img src="/icon-192.png" alt="ESIGN" style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'contain' }} />
@@ -85,8 +105,14 @@ export default function MentorPage({ user, userData }) {
           </div>
         </div>
 
-        {/* Chat */}
-        <div style={{ flex: 1, minHeight: 0 }}>
+        {/* CHAT — commence sous le bandeau */}
+        <div style={{
+          position: 'absolute',
+          top: bandeauHeight,
+          left: 0,
+          right: 0,
+          bottom: 0,
+        }}>
           <ChatInterface
             userId={user?.uid}
             mode="mentor"
@@ -95,6 +121,7 @@ export default function MentorPage({ user, userData }) {
             suggestions={mentorSuggestions}
           />
         </div>
+
       </div>
     </SubscriptionGuard>
   );

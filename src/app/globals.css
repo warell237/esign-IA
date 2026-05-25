@@ -218,3 +218,9 @@ input, textarea {
 .logo-glow {
   animation: logoPulse 3s ease-in-out infinite;
 }
+
+@supports (-webkit-touch-callout: none) {
+  body {
+    height: -webkit-fill-available;
+  }
+}
