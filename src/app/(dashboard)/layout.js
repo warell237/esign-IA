@@ -6,12 +6,6 @@ import { usePathname } from 'next/navigation';
 import { useTheme } from '../providers';
 import ChatBackground from '../components/ChatBackground';
 
-const FAKE_USER = {
-  uid: 'demo123',
-  email: 'jean@esign.cm',
-  displayName: 'Jean Balla',
-};
-
 const FAKE_CONVERSATIONS = [
   { id: 1, title: 'Aide examen algorithmique', date: "Aujourd'hui" },
   { id: 2, title: 'Révision réseaux TCP/IP', date: 'Hier' },
@@ -28,6 +22,9 @@ const modes = [
   { id: 'business', icon: '', label: 'Business', path: '/business' },
   { id: 'prof', icon: '', label: 'Prof', path: '/prof' },
 ];
+
+// Hauteur du header général fixe
+const HEADER_HEIGHT = 48;
 
 export default function DashboardLayout({ children }) {
   const { theme, toggleTheme } = useTheme();
@@ -66,8 +63,8 @@ export default function DashboardLayout({ children }) {
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
         background: isDark
-          ? 'radial-gradient(ellipse at 50% 30%, rgba(68,136,255,0.05) 0%, transparent 70%), radial-gradient(ellipse at 85% 90%, rgba(102,153,255,0.04) 0%, transparent 60%)'
-          : 'radial-gradient(ellipse at 50% 30%, rgba(68,136,255,0.04) 0%, transparent 70%), radial-gradient(ellipse at 85% 90%, rgba(102,153,255,0.03) 0%, transparent 60%)',
+          ? 'radial-gradient(ellipse at 50% 30%, rgba(68,136,255,0.05) 0%, transparent 70%)'
+          : 'radial-gradient(ellipse at 50% 30%, rgba(68,136,255,0.04) 0%, transparent 70%)',
         animation: 'bgPulse 8s ease-in-out infinite',
       }} />
 
@@ -125,8 +122,8 @@ export default function DashboardLayout({ children }) {
                   boxShadow: '0 3px 12px rgba(68,136,255,0.25)',
                   transition: 'transform 0.15s, box-shadow 0.15s',
                 }}
-                onMouseEnter={e => { e.target.style.transform = 'translateY(-1px)'; e.target.style.boxShadow = '0 6px 18px rgba(68,136,255,0.35)'; }}
-                onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 3px 12px rgba(68,136,255,0.25)'; }}
+                onMouseEnter={e => { e.target.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; }}
               >
                 + Nouvelle conversation
               </button>
@@ -237,18 +234,21 @@ export default function DashboardLayout({ children }) {
 
       {/* CONTENU PRINCIPAL */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, height: '100%', overflow: 'hidden' }}>
-        {/* Header top */}
+
+        {/* ✅ HEADER GÉNÉRAL — position fixed, ne bouge JAMAIS */}
         <div style={{
-          padding: '10px 14px', 
-          flexShrink: 0,
-          position: 'sticky', 
-          top: 0, 
-          left: 0,
-          zIndex: 10,
+          position: 'fixed',
+          top: 0,
+          left: isMobile ? 0 : sidebarCollapsed ? 0 : sidebarWidth,
+          right: 0,
+          height: HEADER_HEIGHT,
+          zIndex: 40,
+          padding: '0 14px',
           borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
-          background: isDark ? 'rgba(8,8,32,0.8)' : 'rgba(255,255,255,0.8)',
+          background: isDark ? 'rgba(8,8,32,0.95)' : 'rgba(255,255,255,0.95)',
           backdropFilter: 'blur(20px)',
           display: 'flex', alignItems: 'center', gap: 10,
+          transition: 'left 0.25s ease',
         }}>
           <button
             onClick={() => { if (isMobile) { setSidebarOpen(true); } else { setSidebarCollapsed(!sidebarCollapsed); } }}
@@ -269,15 +269,17 @@ export default function DashboardLayout({ children }) {
           </button>
         </div>
 
-        {/* Zone pages — CORRIGÉ */}
+        {/* ✅ Zone pages — commence APRÈS le header fixe */}
         <div style={{
-          flex: 1,
+          position: 'absolute',
+          top: HEADER_HEIGHT,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          flexDirection: 'column',
           overflow: 'hidden',
-          position: 'relative',
           zIndex: 1,
-          display: 'flex',           
-          flexDirection: 'column',   
-          minHeight: 0,              
           maxWidth: 900,
           margin: '0 auto',
           width: '100%',

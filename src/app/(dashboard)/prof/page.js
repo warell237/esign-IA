@@ -48,7 +48,7 @@ export default function ProfPage({ user, userData }) {
         flexShrink: 0,
         position: 'sticky',  
           top: 0,             
-          zIndex: 5,
+          zIndex: 10,
       }}>
         {/* Titre */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>

@@ -49,6 +49,7 @@ export default function ChatInterface({
   const theme = THEMES[mode] || THEMES.chat;
   const [isMobile, setIsMobile] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef(null);
 
   const c = {
     border: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
@@ -133,8 +134,36 @@ export default function ChatInterface({
     }]);
   };
 
-  const startRecording = () => setIsRecording(true);
-  const stopRecording = () => setIsRecording(false);
+  const startRecording = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Reconnaissance vocale non supportee sur ce navigateur.');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.interimResults = false;
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(prev => (prev + ' ' + transcript).trim());
+    };
+
+    recognition.onend = () => setIsRecording(false);
+    recognition.onerror = () => setIsRecording(false);
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsRecording(true);
+  };
+
+  const stopRecording = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsRecording(false);
+  };
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif', minHeight: 0, overflow: 'hidden' }}>
@@ -225,7 +254,7 @@ export default function ChatInterface({
           {/* Bouton + */}
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <button onClick={() => setShowMenu(!showMenu)}
-              style={{ width: 34, height: 34, borderRadius: 12, border: 'none', background: 'transparent', color: c.mute, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+              style={{ width: 34, height: 34, borderRadius: 12, border: 'none', background: 'transparent', color: c.mute, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </button>
             {showMenu && (
@@ -246,9 +275,19 @@ export default function ChatInterface({
             placeholder={placeholder} rows={1}
             style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', color: c.text, fontSize: 16, resize: 'none', maxHeight: 100, fontFamily: 'inherit', padding: '8px 0' }} />
 
-          {/* Micro */}
-          <button onMouseDown={startRecording} onMouseUp={stopRecording} onTouchStart={startRecording} onTouchEnd={stopRecording}
-            style={{ width: 34, height: 34, borderRadius: 12, border: 'none', background: isRecording ? '#ff4455' : 'transparent', color: isRecording ? 'white' : c.mute, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
+          {/* Micro vocal */}
+          <button
+            onMouseDown={startRecording}
+            onMouseUp={stopRecording}
+            onTouchStart={startRecording}
+            onTouchEnd={stopRecording}
+            style={{
+              width: 34, height: 34, borderRadius: 12, border: 'none',
+              background: isRecording ? '#ff4455' : 'transparent',
+              color: isRecording ? 'white' : c.mute,
+              cursor: 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s',
+            }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="1" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0014 0"/></svg>
           </button>
 

@@ -47,7 +47,7 @@ export default function MentorPage({ user, userData }) {
           flexShrink: 0,
           position: 'sticky',  
           top: 0,             
-          zIndex: 5,
+          zIndex: 10,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
