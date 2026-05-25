@@ -21,7 +21,6 @@ export default function HomePage() {
 
   if (!mounted) return null;
 
-  // Tailles responsives
   const logoSize = isMobile ? 120 : 180;
   const titleSize = isMobile ? '28px' : '46px';
   const subtitleSize = isMobile ? '13px' : '18px';
@@ -34,20 +33,17 @@ export default function HomePage() {
 
   return (
     <main style={{
-      width: '100vw',
-      height: '100vh',
+      width: '100%',
+      height: '100dvh',
       overflow: 'hidden',
       background: theme === 'dark' ? '#000010' : '#f2f5ff',
       position: 'relative',
       fontFamily: 'Arial, sans-serif',
       transition: 'background 0.4s ease',
     }}>
-      {/* Fond 3D */}
       <SpaceBackground />
 
-      {/* ============================================ */}
-      {/* BOUTON THÈME */}
-      {/* ============================================ */}
+      {/* Bouton theme */}
       <div style={{
         position: 'fixed',
         top: isMobile ? '12px' : '20px',
@@ -77,9 +73,7 @@ export default function HomePage() {
         </button>
       </div>
 
-      {/* ============================================ */}
-      {/* CONTENU CENTRÉ */}
-      {/* ============================================ */}
+      {/* Contenu centre */}
       <div style={{
         position: 'absolute',
         top: isMobile ? '38%' : '42%',
@@ -91,7 +85,6 @@ export default function HomePage() {
         width: '90%',
         maxWidth: '500px',
       }}>
-        {/* Logo */}
         <div style={{
           width: `${logoSize}px`,
           height: `${logoSize}px`,
@@ -108,7 +101,6 @@ export default function HomePage() {
           />
         </div>
 
-        {/* Titre */}
         <h1 style={{
           color: theme === 'dark' ? 'white' : '#0a1035',
           fontSize: titleSize,
@@ -123,7 +115,6 @@ export default function HomePage() {
           ESIGN AI
         </h1>
 
-        {/* Sous-titre */}
         <p style={{
           color: theme === 'dark' ? 'rgba(200, 210, 255, 0.85)' : 'rgba(10, 16, 53, 0.7)',
           fontSize: subtitleSize,
@@ -134,7 +125,6 @@ export default function HomePage() {
           ASSISTANT INTELLIGENT
         </p>
 
-        {/* Features */}
         <p style={{
           color: theme === 'dark' ? 'rgba(180, 190, 230, 0.5)' : 'rgba(10, 16, 53, 0.5)',
           fontSize: featuresSize,
@@ -148,9 +138,7 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* ============================================ */}
-      {/* BOUTONS EN BAS */}
-      {/* ============================================ */}
+      {/* Boutons en bas */}
       <div style={{
         position: 'absolute',
         bottom: bottomGap,
@@ -165,64 +153,29 @@ export default function HomePage() {
         maxWidth: btnMaxWidth,
         pointerEvents: 'auto',
       }}>
-        {/* Bouton Commencer */}
-        <Link
-          href="/register"
-          style={{
-            display: 'block',
-            width: '100%',
-            padding: btnPadding,
-            textAlign: 'center',
-            color: 'white',
-            fontWeight: '600',
-            fontSize: btnFontSize,
-            borderRadius: '14px',
-            textDecoration: 'none',
-            background: 'linear-gradient(135deg, #4488ff, #3366cc)',
-            boxShadow: '0 6px 25px rgba(68, 136, 255, 0.4)',
-            transition: 'all 0.3s ease',
-            letterSpacing: '0.5px',
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'translateY(-2px)';
-            e.target.style.boxShadow = '0 8px 30px rgba(68, 136, 255, 0.6)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = '0 6px 25px rgba(68, 136, 255, 0.4)';
-          }}
-        >
-           Commencer gratuitement
+        <Link href="/register" style={{
+          display: 'block', width: '100%', padding: btnPadding,
+          textAlign: 'center', color: 'white', fontWeight: '600',
+          fontSize: btnFontSize, borderRadius: '14px', textDecoration: 'none',
+          background: 'linear-gradient(135deg, #4488ff, #3366cc)',
+          boxShadow: '0 6px 25px rgba(68, 136, 255, 0.4)',
+          transition: 'all 0.3s ease', letterSpacing: '0.5px',
+        }}>
+          Commencer gratuitement
         </Link>
 
-        {/* Bouton Connexion */}
-        <Link
-          href="/login"
-          style={{
-            display: 'block',
-            width: '100%',
-            padding: btnPadding,
-            textAlign: 'center',
-            color: theme === 'dark' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(10, 16, 53, 0.8)',
-            fontWeight: '500',
-            fontSize: btnFontSize,
-            borderRadius: '14px',
-            textDecoration: 'none',
-            border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(10, 16, 53, 0.2)',
-            transition: 'all 0.3s ease',
-            letterSpacing: '0.5px',
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.background = theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.background = 'transparent';
-          }}
-        >
-           J&apos;ai déjà un compte
+        <Link href="/login" style={{
+          display: 'block', width: '100%', padding: btnPadding,
+          textAlign: 'center',
+          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(10, 16, 53, 0.8)',
+          fontWeight: '500', fontSize: btnFontSize, borderRadius: '14px',
+          textDecoration: 'none',
+          border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(10, 16, 53, 0.2)',
+          transition: 'all 0.3s ease', letterSpacing: '0.5px',
+        }}>
+          J&apos;ai deja un compte
         </Link>
 
-        {/* Prix */}
         <p style={{
           color: theme === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(10, 16, 53, 0.4)',
           fontSize: isMobile ? '10px' : '12px',
@@ -231,31 +184,37 @@ export default function HomePage() {
         }}>
           {isMobile
             ? '50 questions/jour • Premium 1000 FCFA/mois'
-            : '50 questions gratuites par jour • Premium dès 1 000 FCFA/mois'}
+            : '50 questions gratuites par jour • Premium des 1 000 FCFA/mois'}
         </p>
       </div>
 
-      {/* ============================================ */}
-      {/* FOOTER */}
-      {/* ============================================ */}
+      {/* Footer + Signature */}
       <div style={{
         position: 'absolute',
-        bottom: isMobile ? '8px' : '14px',
+        bottom: isMobile ? '6px' : '10px',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 10,
-        color: theme === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(10, 16, 53, 0.2)',
-        fontSize: isMobile ? '9px' : '11px',
         textAlign: 'center',
-        letterSpacing: '1px',
-        whiteSpace: 'nowrap',
       }}>
-        ESIGN • UIECC • Sangmélima • Cameroun-Congo
+        <p style={{
+          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(10, 16, 53, 0.2)',
+          fontSize: isMobile ? '9px' : '11px',
+          letterSpacing: '1px',
+          margin: 0,
+          whiteSpace: 'nowrap',
+        }}>
+          ESIGN • UIECC • Sangmelima • Cameroun-Congo
+        </p>
+        <p style={{
+          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(10, 16, 53, 0.12)',
+          fontSize: isMobile ? '7px' : '9px',
+          margin: '2px 0 0 0',
+        }}>
+          Realise par Empire Dev
+        </p>
       </div>
 
-      {/* ============================================ */}
-      {/* ANIMATIONS */}
-      {/* ============================================ */}
       <style>{`
         @keyframes pulse {
           0%, 100% { transform: scale(1); filter: brightness(1); }

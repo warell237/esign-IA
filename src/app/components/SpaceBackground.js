@@ -10,7 +10,7 @@ export default function SpaceBackground() {
     // ---------- SCÈNE ----------
     const scene = new THREE.Scene();
 
-    // ---------- CAMÉRA (yeux du voyageur) ----------
+    // ---------- CAMÉRA ----------
     const camera = new THREE.PerspectiveCamera(
       75,
       window.innerWidth / window.innerHeight,
@@ -19,18 +19,24 @@ export default function SpaceBackground() {
     );
     camera.position.set(0, 0, 5);
 
-    // ---------- MOTEUR DE RENDU WebGL ----------
+    // ---------- RENDERER ----------
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
-      alpha: true, // Fond transparent pour laisser voir le CSS derrière
+      alpha: true,
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     const container = containerRef.current;
     container.appendChild(renderer.domElement);
 
-    // ---------- TEXTURE RONDE POUR ÉTOILES ----------
+    // ---------- ÉCHELLE ----------
+    const getScale = () => Math.min(window.innerWidth / 1200, window.innerHeight / 800);
+    let screenScale = getScale();
+
+    // ---------- TEXTURE ÉTOILES ----------
     const starCanvas = document.createElement('canvas');
     starCanvas.width = 32;
     starCanvas.height = 32;
@@ -45,7 +51,7 @@ export default function SpaceBackground() {
 
     const starTexture = new THREE.CanvasTexture(starCanvas);
 
-    // ---------- ÉTOILES (4000 particules) ----------
+    // ---------- ÉTOILES ----------
     const starsCount = 4000;
     const starsGeometry = new THREE.BufferGeometry();
     const starsPositions = new Float32Array(starsCount * 3);
@@ -72,14 +78,8 @@ export default function SpaceBackground() {
       }
     }
 
-    starsGeometry.setAttribute(
-      'position',
-      new THREE.BufferAttribute(starsPositions, 3)
-    );
-    starsGeometry.setAttribute(
-      'color',
-      new THREE.BufferAttribute(starsColors, 3)
-    );
+    starsGeometry.setAttribute('position', new THREE.BufferAttribute(starsPositions, 3));
+    starsGeometry.setAttribute('color', new THREE.BufferAttribute(starsColors, 3));
 
     const starsMaterial = new THREE.PointsMaterial({
       size: 0.35,
@@ -93,7 +93,7 @@ export default function SpaceBackground() {
     const stars = new THREE.Points(starsGeometry, starsMaterial);
     scene.add(stars);
 
-    // ---------- POUSSIÈRE (nébuleuse) ----------
+    // ---------- POUSSIÈRE ----------
     const dustCount = 2500;
     const dustGeometry = new THREE.BufferGeometry();
     const dustPositions = new Float32Array(dustCount * 3);
@@ -104,10 +104,7 @@ export default function SpaceBackground() {
       dustPositions[i * 3 + 2] = (Math.random() - 0.5) * 300;
     }
 
-    dustGeometry.setAttribute(
-      'position',
-      new THREE.BufferAttribute(dustPositions, 3)
-    );
+    dustGeometry.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
 
     const dustMaterial = new THREE.PointsMaterial({
       size: 0.12,
@@ -121,8 +118,8 @@ export default function SpaceBackground() {
     const dust = new THREE.Points(dustGeometry, dustMaterial);
     scene.add(dust);
 
-    // ---------- SPHÈRES POLYGONALES ----------
-    const sphereGeometry = new THREE.IcosahedronGeometry(1.8, 1);
+    // ---------- SPHÈRES ----------
+    let sphereGeometry = new THREE.IcosahedronGeometry(1.8 * screenScale, 1);
     const sphereMaterial = new THREE.MeshBasicMaterial({
       color: 0x4488ff,
       wireframe: true,
@@ -133,7 +130,7 @@ export default function SpaceBackground() {
     sphere.position.set(0, 0, -2);
     scene.add(sphere);
 
-    const sphere2Geometry = new THREE.IcosahedronGeometry(2.5, 2);
+    let sphere2Geometry = new THREE.IcosahedronGeometry(2.5 * screenScale, 2);
     const sphere2Material = new THREE.MeshBasicMaterial({
       color: 0x6699ff,
       wireframe: true,
@@ -198,11 +195,19 @@ export default function SpaceBackground() {
 
     animate();
 
-    // ---------- REDIMENSIONNEMENT ----------
+    // ---------- RESIZE ----------
     const handleResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.domElement.style.width = '100%';
+      renderer.domElement.style.height = '100%';
+
+      screenScale = getScale();
+      sphere.geometry.dispose();
+      sphere.geometry = new THREE.IcosahedronGeometry(1.8 * screenScale, 1);
+      sphere2.geometry.dispose();
+      sphere2.geometry = new THREE.IcosahedronGeometry(2.5 * screenScale, 2);
     };
     window.addEventListener('resize', handleResize);
 
@@ -220,8 +225,8 @@ export default function SpaceBackground() {
         position: 'fixed',
         top: 0,
         left: 0,
-        width: '100%',
-        height: '100%',
+        width: '100vw',
+        height: '100dvh',
         zIndex: 0,
         pointerEvents: 'none',
       }}
