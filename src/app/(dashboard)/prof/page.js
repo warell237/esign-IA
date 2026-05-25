@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import ChatInterface from '../../components/ChatInterface';
 import { useTheme } from '../../providers';
+
+const HEADER_GENERAL = 48;
 
 export default function ProfPage({ user, userData }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [searchQuery, setSearchQuery] = useState('');
+  const bandeauRef = useRef(null);
+  const [bandeauHeight, setBandeauHeight] = useState(160);
 
   const categories = [
     { label: 'Filieres', query: 'Quelles sont les filieres a ESIGN ?' },
@@ -23,7 +27,7 @@ export default function ProfPage({ user, userData }) {
     'Programme detaille ISN L2',
     'Calendrier des examens 2026',
     'Liste des professeurs par departement',
-    'Reglement interieur de l\'ecole',
+    "Reglement interieur de l'ecole",
     'Comment contacter l\'administration ?',
   ];
 
@@ -33,30 +37,44 @@ export default function ProfPage({ user, userData }) {
     text2: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)',
     mute: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
     accent: '#6699ff',
-    bgCard: isDark ? 'rgba(8,8,32,0.8)' : 'rgba(255,255,255,0.8)',
+    bgCard: isDark ? 'rgba(8,8,32,0.95)' : 'rgba(255,255,255,0.95)',
   };
 
-  return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif', overflow: 'hidden' }}>
+  useEffect(() => {
+    if (!bandeauRef.current) return;
+    const observer = new ResizeObserver(() => {
+      setBandeauHeight(bandeauRef.current?.offsetHeight || 160);
+    });
+    observer.observe(bandeauRef.current);
+    setBandeauHeight(bandeauRef.current.offsetHeight);
+    return () => observer.disconnect();
+  }, []);
 
-      {/* Bandeau Prof */}
-      <div style={{
-        padding: '16px 20px',
-         borderBottom: `1px solid ${c.border}`,
-        background: c.bgCard, 
-        backdropFilter: 'blur(20px)', 
-        flexShrink: 0,
-        position: 'sticky',  
-          top: 0,             
-          zIndex: 10,
-      }}>
-        {/* Titre */}
+  return (
+    <div style={{ height: '100%', position: 'relative', fontFamily: 'Arial, sans-serif' }}>
+
+      {/* BANDEAU FIXE */}
+      <div
+        ref={bandeauRef}
+        style={{
+          position: 'fixed',
+          top: HEADER_GENERAL,
+          left: 0,
+          right: 0,
+          zIndex: 30,
+          padding: '16px 20px',
+          borderBottom: `1px solid ${c.border}`,
+          background: c.bgCard,
+          backdropFilter: 'blur(20px)',
+          transform: 'translateZ(0)',
+          WebkitTransform: 'translateZ(0)',
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
           <img src="/icon-192.png" alt="ESIGN" style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'contain' }} />
           <span style={{ color: c.text, fontSize: 17, fontWeight: 700 }}>Informations ESIGN</span>
         </div>
 
-        {/* Barre de recherche */}
         <div style={{ position: 'relative', marginBottom: 12 }}>
           <input
             type="text"
@@ -67,7 +85,7 @@ export default function ProfPage({ user, userData }) {
               width: '100%', padding: '12px 16px 12px 42px', borderRadius: 12,
               border: `1px solid ${c.border}`,
               background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-              color: c.text, fontSize: 13, outline: 'none', boxSizing: 'border-box',
+              color: c.text, fontSize: 16, outline: 'none', boxSizing: 'border-box',
             }}
           />
           <svg
@@ -79,7 +97,6 @@ export default function ProfPage({ user, userData }) {
           </svg>
         </div>
 
-        {/* Categories */}
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
           {categories.map(cat => (
             <button
@@ -101,8 +118,14 @@ export default function ProfPage({ user, userData }) {
         </div>
       </div>
 
-      {/* Chat */}
-      <div style={{ flex: 1, minHeight: 0 }}>
+      {/* CHAT — commence sous le bandeau */}
+      <div style={{
+        position: 'absolute',
+        top: bandeauHeight,
+        left: 0,
+        right: 0,
+        bottom: 0,
+      }}>
         <ChatInterface
           userId={user?.uid}
           mode="prof"
@@ -113,6 +136,7 @@ export default function ProfPage({ user, userData }) {
           showQuota={false}
         />
       </div>
+
     </div>
   );
 }
