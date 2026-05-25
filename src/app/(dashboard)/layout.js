@@ -33,8 +33,8 @@ export default function DashboardLayout({ children }) {
   const { theme, toggleTheme } = useTheme();
   const pathname = usePathname();
   const [isMobile, setIsMobile] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);       // Mobile : overlay
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // Desktop : réduire
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentConv, setCurrentConv] = useState(null);
   const isDark = theme === 'dark';
 
@@ -49,13 +49,16 @@ export default function DashboardLayout({ children }) {
     if (isMobile) setSidebarOpen(false);
   }, [pathname, isMobile]);
 
-  // Largeur de la sidebar selon l'état
   const sidebarWidth = isMobile ? 280 : sidebarCollapsed ? 0 : 280;
 
   return (
     <div style={{
-      height: '100dvh', width: '100%', display: 'flex', position: 'relative',
-      background: isDark ? '#000010' : '#f2f5ff', overflow: 'hidden',
+      height: '100dvh',
+      width: '100%',
+      display: 'flex',
+      position: 'relative',
+      background: isDark ? '#000010' : '#f2f5ff',
+      overflow: 'hidden',
     }}>
       <ChatBackground />
 
@@ -76,14 +79,10 @@ export default function DashboardLayout({ children }) {
         }} />
       )}
 
-      {/* ============================================ */}
       {/* SIDEBAR */}
-      {/* ============================================ */}
       <div style={{
         position: isMobile ? 'fixed' : 'relative',
-        left: isMobile
-          ? sidebarOpen ? '0' : '-100%'
-          : '0',
+        left: isMobile ? (sidebarOpen ? '0' : '-100%') : '0',
         top: 0, bottom: 0,
         width: sidebarWidth,
         minWidth: sidebarWidth,
@@ -99,7 +98,7 @@ export default function DashboardLayout({ children }) {
         overflow: 'hidden',
         flexShrink: 0,
       }}>
-        {/* ========== ZONE 1 : HAUT FIXE ========== */}
+        {/* HAUT FIXE */}
         <div style={{
           flexShrink: 0,
           padding: sidebarCollapsed && !isMobile ? '18px 8px 10px' : '18px 14px 10px',
@@ -107,31 +106,16 @@ export default function DashboardLayout({ children }) {
           display: sidebarCollapsed && !isMobile ? 'flex' : 'block',
           justifyContent: 'center',
         }}>
-          {/* Logo + Titre */}
           {!(sidebarCollapsed && !isMobile) && (
             <>
               <Link href="/chat" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, textDecoration: 'none' }}
                 onClick={() => isMobile && setSidebarOpen(false)}>
-                <img
-                  src="/icon-192.png"
-                  alt="ESIGN"
-                  style={{
-                    width: 28, height: 28, borderRadius: 6,
-                    objectFit: 'contain',
-                    flexShrink: 0,
-                  }}
-                />
+                <img src="/icon-192.png" alt="ESIGN" style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'contain', flexShrink: 0 }} />
                 <div>
-                  <div style={{ color: isDark ? 'white' : '#0a1035', fontSize: 16, fontWeight: 700, letterSpacing: 1, lineHeight: 1 }}>
-                    ESIGN AI
-                  </div>
-                  <div style={{ color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)', fontSize: 10.5, marginTop: 1 }}>
-                    Assistant Intelligent
-                  </div>
+                  <div style={{ color: isDark ? 'white' : '#0a1035', fontSize: 16, fontWeight: 700, letterSpacing: 1, lineHeight: 1 }}>ESIGN AI</div>
+                  <div style={{ color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)', fontSize: 10.5, marginTop: 1 }}>Assistant Intelligent</div>
                 </div>
               </Link>
-
-              {/* Bouton Nouvelle conversation */}
               <button
                 onClick={() => { setCurrentConv(null); if (isMobile) setSidebarOpen(false); }}
                 style={{
@@ -141,15 +125,13 @@ export default function DashboardLayout({ children }) {
                   boxShadow: '0 3px 12px rgba(68,136,255,0.25)',
                   transition: 'transform 0.15s, box-shadow 0.15s',
                 }}
-                onMouseEnter={(e) => { e.target.style.transform = 'translateY(-1px)'; e.target.style.boxShadow = '0 6px 18px rgba(68,136,255,0.35)'; }}
-                onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 3px 12px rgba(68,136,255,0.25)'; }}
+                onMouseEnter={e => { e.target.style.transform = 'translateY(-1px)'; e.target.style.boxShadow = '0 6px 18px rgba(68,136,255,0.35)'; }}
+                onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 3px 12px rgba(68,136,255,0.25)'; }}
               >
                 + Nouvelle conversation
               </button>
             </>
           )}
-
-          {/* Bouton réduire/ouvrir desktop */}
           {!isMobile && (
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -157,24 +139,20 @@ export default function DashboardLayout({ children }) {
                 marginTop: sidebarCollapsed ? 0 : 12,
                 width: 32, height: 32, borderRadius: 6,
                 border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
-                background: 'transparent',
-                cursor: 'pointer',
-                fontSize: 14,
+                background: 'transparent', cursor: 'pointer', fontSize: 14,
                 color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 0.2s',
               }}
-              title={sidebarCollapsed ? 'Ouvrir la barre latérale' : 'Fermer la barre latérale'}
             >
               {sidebarCollapsed ? '▶' : '◀'}
             </button>
           )}
         </div>
 
-        {/* ========== ZONE 2 : SCROLLABLE ========== */}
+        {/* SCROLLABLE */}
         {!(sidebarCollapsed && !isMobile) && (
           <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 8px 0' }}>
-            {/* Section Conversations */}
             <div style={{ padding: '12px 14px 4px' }}>
               <span style={{ color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
                 Conversations
@@ -182,29 +160,22 @@ export default function DashboardLayout({ children }) {
             </div>
             <div style={{ padding: '4px 8px' }}>
               {FAKE_CONVERSATIONS.map(conv => (
-                <button
-                  key={conv.id}
+                <button key={conv.id}
                   onClick={() => { setCurrentConv(conv); if (isMobile) setSidebarOpen(false); }}
                   style={{
                     width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 8, border: 'none',
                     background: currentConv?.id === conv.id ? (isDark ? 'rgba(68,136,255,0.12)' : 'rgba(68,136,255,0.06)') : 'transparent',
                     color: currentConv?.id === conv.id ? '#4488ff' : (isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'),
-                    cursor: 'pointer', fontSize: 12.5, marginBottom: 1,
-                    transition: 'background 0.15s',
-                  }}
-                >
-                  <div style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>
-                    {conv.title}
-                  </div>
+                    cursor: 'pointer', fontSize: 12.5, marginBottom: 1, transition: 'background 0.15s',
+                  }}>
+                  <div style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{conv.title}</div>
                   <div style={{ fontSize: 10.5, color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)' }}>{conv.date}</div>
                 </button>
               ))}
             </div>
 
-            {/* Séparateur */}
             <div style={{ margin: '8px 14px', height: '1px', background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }} />
 
-            {/* Section Modes */}
             <div style={{ padding: '12px 14px 4px' }}>
               <span style={{ color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
                 Modes
@@ -214,28 +185,18 @@ export default function DashboardLayout({ children }) {
               {modes.map(mode => {
                 const active = pathname === mode.path || pathname.startsWith(mode.path + '/');
                 return (
-                  <Link
-                    key={mode.id}
-                    href={mode.path}
+                  <Link key={mode.id} href={mode.path}
                     onClick={() => isMobile && setSidebarOpen(false)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '9px 12px', borderRadius: 8,
-                      textDecoration: 'none', fontSize: 13, fontWeight: 500,
+                      padding: '9px 12px', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 500,
                       color: active ? '#4488ff' : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)'),
                       background: active ? (isDark ? 'rgba(68,136,255,0.12)' : 'rgba(68,136,255,0.06)') : 'transparent',
-                      marginBottom: 1,
-                      transition: 'background 0.15s',
-                    }}
-                  >
+                      marginBottom: 1, transition: 'background 0.15s',
+                    }}>
                     <span style={{ fontSize: 15 }}>{mode.icon}</span>
                     <span>{mode.label}</span>
-                    {active && (
-                      <span style={{
-                        marginLeft: 'auto', width: 5, height: 5, borderRadius: '50%',
-                        background: '#4488ff', boxShadow: '0 0 6px rgba(68,136,255,0.5)',
-                      }} />
-                    )}
+                    {active && <span style={{ marginLeft: 'auto', width: 5, height: 5, borderRadius: '50%', background: '#4488ff', boxShadow: '0 0 6px rgba(68,136,255,0.5)' }} />}
                   </Link>
                 );
               })}
@@ -243,7 +204,7 @@ export default function DashboardLayout({ children }) {
           </div>
         )}
 
-        {/* ========== ZONE 3 : BAS FIXE ========== */}
+        {/* BAS FIXE */}
         {!(sidebarCollapsed && !isMobile) && (
           <div style={{
             flexShrink: 0, padding: '10px 14px',
@@ -256,38 +217,27 @@ export default function DashboardLayout({ children }) {
                 width: 28, height: 28, borderRadius: '50%',
                 background: 'linear-gradient(135deg, #4488ff, #3366cc)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'white', fontSize: 11, fontWeight: 700,
-                flexShrink: 0,
+                color: 'white', fontSize: 11, fontWeight: 700, flexShrink: 0,
               }}>J</div>
-              <span style={{
-                color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)',
-                fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
+              <span style={{ color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)', fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 Jean Balla
               </span>
             </Link>
-            <button
-              onClick={toggleTheme}
-              style={{
-                width: 30, height: 30, borderRadius: 7, flexShrink: 0,
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
-                background: 'transparent', cursor: 'pointer', fontSize: 14,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.2s',
-              }}
-              aria-label={isDark ? 'Mode clair' : 'Mode sombre'}
-            >
+            <button onClick={toggleTheme} style={{
+              width: 30, height: 30, borderRadius: 7, flexShrink: 0,
+              border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+              background: 'transparent', cursor: 'pointer', fontSize: 14,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s',
+            }}>
               {isDark ? '☀️' : '🌙'}
             </button>
           </div>
         )}
       </div>
 
-      {/* ============================================ */}
       {/* CONTENU PRINCIPAL */}
-      {/* ============================================ */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, height: '100%' }}>
-        {/* Barre top : desktop ET mobile */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, height: '100%', overflow: 'hidden' }}>
+        {/* Header top */}
         <div style={{
           padding: '10px 14px', flexShrink: 0,
           borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
@@ -295,42 +245,15 @@ export default function DashboardLayout({ children }) {
           backdropFilter: 'blur(20px)',
           display: 'flex', alignItems: 'center', gap: 10,
         }}>
-          {/* Bouton hamburger : mobile → ouvre overlay, desktop → toggle collapse */}
           <button
-            onClick={() => {
-              if (isMobile) {
-                setSidebarOpen(true);
-              } else {
-                setSidebarCollapsed(!sidebarCollapsed);
-              }
-            }}
-            style={{
-              background: 'none', border: 'none', fontSize: 20, cursor: 'pointer',
-              color: isDark ? 'white' : '#0a1035', padding: 0, lineHeight: 1,
-            }}
-          >
-            ☰
-          </button>
-
-          {/* Logo + titre (toujours visible) */}
+            onClick={() => { if (isMobile) { setSidebarOpen(true); } else { setSidebarCollapsed(!sidebarCollapsed); } }}
+            style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: isDark ? 'white' : '#0a1035', padding: 0, lineHeight: 1 }}
+          >☰</button>
           <Link href="/chat" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-            <img
-              src="/icon-192.png"
-              alt="ESIGN"
-              style={{
-                width: 28, height: 28, borderRadius: 6,
-                objectFit: 'contain',
-                flexShrink: 0,
-              }}
-            />
-            <div style={{ color: isDark ? 'white' : '#0a1035', fontSize: 14, fontWeight: 700, letterSpacing: 1 }}>
-              ESIGN AI
-            </div>
+            <img src="/icon-192.png" alt="ESIGN" style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'contain', flexShrink: 0 }} />
+            <div style={{ color: isDark ? 'white' : '#0a1035', fontSize: 14, fontWeight: 700, letterSpacing: 1 }}>ESIGN AI</div>
           </Link>
-
           <div style={{ flex: 1 }} />
-
-          {/* Bouton thème (toujours visible) */}
           <button onClick={toggleTheme} style={{
             width: 30, height: 30, borderRadius: 7,
             border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
@@ -341,16 +264,19 @@ export default function DashboardLayout({ children }) {
           </button>
         </div>
 
-        {/* Pages */}
-        <div style={{ 
-            flex: 1, 
-           overflow: 'hidden', 
-            position: 'relative', 
-            zIndex: 1,
-  maxWidth: 900,
-  margin: '0 auto',
-  width: '100%',
-}}>
+        {/* Zone pages — CORRIGÉ */}
+        <div style={{
+          flex: 1,
+          overflow: 'hidden',
+          position: 'relative',
+          zIndex: 1,
+          display: 'flex',           
+          flexDirection: 'column',   
+          minHeight: 0,              
+          maxWidth: 900,
+          margin: '0 auto',
+          width: '100%',
+        }}>
           {children}
         </div>
       </div>

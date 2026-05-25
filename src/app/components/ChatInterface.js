@@ -82,20 +82,20 @@ export default function ChatInterface({
     }
   }, [messages]);
 
-  // Empecher le resize sur mobile quand clavier ouvert
   useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
     const handleFocus = () => {
       setTimeout(() => {
         if (messagesContainerRef.current) {
           messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
         }
-      }, 300);
+        // Force scroll de l'input dans la vue sur iOS
+        el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 350);
     };
-    const input = inputRef.current;
-    if (input) {
-      input.addEventListener('focus', handleFocus);
-      return () => input.removeEventListener('focus', handleFocus);
-    }
+    el.addEventListener('focus', handleFocus);
+    return () => el.removeEventListener('focus', handleFocus);
   }, []);
 
   const handleSend = async () => {
@@ -137,8 +137,15 @@ export default function ChatInterface({
   };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif', minHeight: 0 }}>
-      
+    <div style={{
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      fontFamily: 'Arial, sans-serif',
+      minHeight: 0,
+      overflow: 'hidden',   // ← AJOUTÉ
+    }}>
+
       {showQuota && quota && (
         <div style={{
           padding: '6px 14px', textAlign: 'center', flexShrink: 0,
@@ -166,11 +173,14 @@ export default function ChatInterface({
 
       {/* Zone messages - SEULE zone qui scroll */}
       <div ref={messagesContainerRef} style={{
-        flex: 1, overflowY: 'auto', padding: isMobile ? '12px 10px' : '20px 20px',
-        WebkitOverflowScrolling: 'touch', minHeight: 0,
+        flex: 1,
+        overflowY: 'auto',
+        padding: isMobile ? '12px 10px' : '20px 20px',
+        WebkitOverflowScrolling: 'touch',
+        minHeight: 0,
         overscrollBehavior: 'contain',
       }}>
-        
+
         {messages.length === 0 && (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -223,7 +233,7 @@ export default function ChatInterface({
         )}
       </div>
 
-      {/* Input fixe en bas - ne bouge pas */}
+      {/* Input fixe en bas */}
       <div style={{ padding: isMobile ? '6px 8px 8px' : '12px 16px 16px', flexShrink: 0 }}>
         <div style={{
           width: '100%', maxWidth: 720, margin: '0 auto', display: 'flex', alignItems: 'flex-end', gap: 8,
@@ -239,7 +249,9 @@ export default function ChatInterface({
             rows={1}
             style={{
               flex: 1, border: 'none', outline: 'none', background: 'transparent',
-              color: c.text, fontSize: isMobile ? 13 : 14, resize: 'none', maxHeight: 100,
+              color: c.text,
+              fontSize: 16,          // ← 16px minimum pour éviter zoom iOS
+              resize: 'none', maxHeight: 100,
               fontFamily: 'inherit', padding: '8px 0',
             }}
           />
