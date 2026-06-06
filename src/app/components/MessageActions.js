@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 
-export default function MessageActions({ content, onRefresh }) {
-  const [show, setShow] = useState(false);       // Afficher/cacher les boutons
+export default function MessageActions({ content, onRefresh, isDark = true }) {
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -41,32 +40,29 @@ export default function MessageActions({ content, onRefresh }) {
     if (liked) setLiked(false);
   };
 
-  // Style des boutons : très discrets
+  const mutedColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
+
   const btnStyle = (active, color) => ({
     background: active && color ? color + '20' : 'transparent',
     border: 'none',
     cursor: 'pointer',
     fontSize: 12,
-    padding: '3px 5px',
+    padding: '3px 6px',
     borderRadius: 4,
-    color: active && color ? color : 'rgba(255,255,255,0.3)',
+    color: active && color ? color : mutedColor,
     transition: 'all 0.15s',
     lineHeight: 1,
   });
 
   return (
-    <div
-      style={{
-        marginTop: 6,
-        paddingTop: 4,
-        borderTop: show ? '1px solid rgba(255,255,255,0.05)' : 'none',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 2,
-        opacity: show ? 1 : 0,
-        transition: 'opacity 0.2s',
-      }}
-    >
+    <div style={{
+      marginTop: 8,
+      paddingTop: 6,
+      borderTop: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.06)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 2,
+    }}>
       <button onClick={handleLike} style={btnStyle(liked, '#22c55e')} title="Utile">
         ▲
       </button>

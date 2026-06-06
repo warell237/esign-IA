@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../../providers';
+import { useUser } from '../layout';
 
-export default function ProfilePage({ user, userData }) {
+export default function ProfilePage() {
   const router = useRouter();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { user, userData } = useUser();
 
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({

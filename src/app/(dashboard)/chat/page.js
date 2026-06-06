@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
 import ChatInterface from '../../components/ChatInterface';
 import SubscriptionGuard from '../../components/SubscriptionGuard';
 import { useTheme } from '../../providers';
+import { useUser } from '../layout';
 
-export default function ChatPage({ user, userData }) {
+export default function ChatPage() {
   const { theme } = useTheme();
+  const { user, userData } = useUser(); // ✅ via Context
   const isDark = theme === 'dark';
 
   const chatSuggestions = [
@@ -17,9 +18,9 @@ export default function ChatPage({ user, userData }) {
   ];
 
   return (
-    <SubscriptionGuard userId={user?.uid}>
+    <SubscriptionGuard userId={user?.id}>
       <ChatInterface
-        userId={user?.uid}
+        userId={user?.id}
         mode="chat"
         isDark={isDark}
         placeholder="Posez votre question..."

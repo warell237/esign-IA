@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import MessageActions from './MessageActions';
 
 const THEMES = {
   chat: {
@@ -50,6 +52,8 @@ export default function ChatInterface({
   const [isMobile, setIsMobile] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef(null);
+  // ID du message AI survolé pour afficher les actions
+  const [hoveredMsgId, setHoveredMsgId] = useState(null);
 
   const c = {
     border: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
@@ -69,8 +73,13 @@ export default function ChatInterface({
   const [quota, setQuota] = useState(null);
   const [error, setError] = useState('');
   const [showMenu, setShowMenu] = useState(false);
+  const [conversationId, setConversationId] = useState(null);
   const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (initialMessages.length > 0) setMessages(initialMessages);
+  }, [initialMessages]);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
@@ -85,12 +94,28 @@ export default function ChatInterface({
     }
   }, [messages]);
 
+  const saveConversation = async (msgs, convId) => {
+    if (!userId || msgs.length === 0) return;
+    const title = msgs[0]?.content?.substring(0, 60) || 'Nouvelle conversation';
+    if (convId) {
+      await supabase.from('conversations').update({ messages: msgs, title, updated_at: new Date().toISOString() }).eq('id', convId);
+    } else {
+      const { data } = await supabase.from('conversations').insert({ user_id: userId, title, messages: msgs, mode, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }).select('id').single();
+      if (data) setConversationId(data.id);
+    }
+  };
+
   const handleSend = async () => {
     const text = input.trim();
     if (!text || loading) return;
 
+    console.log('userId:', userId);
+console.log('message:', text);
+
+
     const userMsg = { role: 'user', content: text, id: Date.now() };
-    setMessages(prev => [...prev, userMsg]);
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
     setInput('');
     setLoading(true);
     setError('');
@@ -98,7 +123,10 @@ export default function ChatInterface({
     try {
       if (onSend) {
         await onSend(text, messages, (reply) => {
-          setMessages(prev => [...prev, { role: 'ai', content: reply, id: Date.now() + 1 }]);
+          const aiMsg = { role: 'ai', content: reply, id: Date.now() + 1 };
+          const finalMessages = [...newMessages, aiMsg];
+          setMessages(finalMessages);
+          saveConversation(finalMessages, conversationId);
         });
       } else {
         const res = await fetch('/api/chat', {
@@ -108,7 +136,10 @@ export default function ChatInterface({
         });
         const data = await res.json();
         if (data.success) {
-          setMessages(prev => [...prev, { role: 'ai', content: data.reply, id: Date.now() + 1 }]);
+          const aiMsg = { role: 'ai', content: data.reply, id: Date.now() + 1 };
+          const finalMessages = [...newMessages, aiMsg];
+          setMessages(finalMessages);
+          saveConversation(finalMessages, conversationId);
           if (data.quota) setQuota(data.quota);
         } else if (data.error === 'QUOTA_EXCEEDED') {
           setError(data.message);
@@ -123,57 +154,73 @@ export default function ChatInterface({
     }
   };
 
+  // Régénérer la dernière réponse IA
+  const handleRefresh = async (msgId) => {
+    const msgIndex = messages.findIndex(m => m.id === msgId);
+    if (msgIndex === -1) return;
+    // Trouver le message user avant ce message AI
+    const userMsg = messages[msgIndex - 1];
+    if (!userMsg || userMsg.role !== 'user') return;
+
+    // Supprimer la réponse actuelle
+    const trimmed = messages.slice(0, msgIndex);
+    setMessages(trimmed);
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMsg.content, mode, userId, history: trimmed.slice(-20) }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const aiMsg = { role: 'ai', content: data.reply, id: Date.now() };
+        const finalMessages = [...trimmed, aiMsg];
+        setMessages(finalMessages);
+        saveConversation(finalMessages, conversationId);
+      }
+    } catch (err) {
+      setError('Erreur de connexion au serveur');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleFile = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setMessages(prev => [...prev, {
-      role: 'user',
-      content: `[Fichier: ${file.name}]`,
-      id: Date.now(),
-      file: file,
-    }]);
+    const userMsg = { role: 'user', content: `[Fichier: ${file.name}]`, id: Date.now(), file };
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
+    saveConversation(newMessages, conversationId);
   };
 
   const startRecording = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert('Reconnaissance vocale non supportee sur ce navigateur.');
-      return;
-    }
-
+    if (!SpeechRecognition) { alert('Reconnaissance vocale non supportee.'); return; }
     const recognition = new SpeechRecognition();
     recognition.lang = 'fr-FR';
     recognition.interimResults = false;
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setInput(prev => (prev + ' ' + transcript).trim());
-    };
-
+    recognition.onresult = (event) => setInput(prev => (prev + ' ' + event.results[0][0].transcript).trim());
     recognition.onend = () => setIsRecording(false);
     recognition.onerror = () => setIsRecording(false);
-
     recognitionRef.current = recognition;
     recognition.start();
     setIsRecording(true);
   };
 
   const stopRecording = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
+    if (recognitionRef.current) recognitionRef.current.stop();
     setIsRecording(false);
   };
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif', minHeight: 0, overflow: 'hidden' }}>
-      
+
       {showQuota && quota && (
-        <div style={{
-          padding: '6px 14px', textAlign: 'center', flexShrink: 0,
-          background: isDark ? 'rgba(68,136,255,0.1)' : 'rgba(68,136,255,0.05)',
-          color: theme.accent, fontSize: 11, borderBottom: `1px solid ${c.border}`,
-        }}>
+        <div style={{ padding: '6px 14px', textAlign: 'center', flexShrink: 0, background: isDark ? 'rgba(68,136,255,0.1)' : 'rgba(68,136,255,0.05)', color: theme.accent, fontSize: 11, borderBottom: `1px solid ${c.border}` }}>
           {quota.plan === 'premium' ? 'Premium - Acces illimite' : `Questions restantes : ${quota.questionsRemaining}`}
         </div>
       )}
@@ -181,20 +228,15 @@ export default function ChatInterface({
       {headerContent}
 
       {error && (
-        <div style={{
-          padding: '10px 14px', background: 'rgba(255,68,85,0.1)', color: '#ff4455',
-          fontSize: 12, textAlign: 'center', borderBottom: '1px solid rgba(255,68,85,0.2)', flexShrink: 0,
-        }}>
+        <div style={{ padding: '10px 14px', background: 'rgba(255,68,85,0.1)', color: '#ff4455', fontSize: 12, textAlign: 'center', borderBottom: '1px solid rgba(255,68,85,0.2)', flexShrink: 0 }}>
           {error}
           <button onClick={() => setError('')} style={{ marginLeft: 8, textDecoration: 'underline', color: '#ff4455', background: 'none', border: 'none', cursor: 'pointer' }}>Fermer</button>
         </div>
       )}
 
-      <div ref={messagesContainerRef} style={{
-        flex: 1, overflowY: 'auto', padding: isMobile ? '12px 10px' : '20px 20px',
-        WebkitOverflowScrolling: 'touch', minHeight: 0, overscrollBehavior: 'contain',
-      }}>
-        
+      {/* Zone messages */}
+      <div ref={messagesContainerRef} style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '12px 10px' : '20px 20px', WebkitOverflowScrolling: 'touch', minHeight: 0, overscrollBehavior: 'contain' }}>
+
         {messages.length === 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100%', textAlign: 'center', padding: '20px 0' }}>
             <img src="/icon-192.png" alt="ESIGN" style={{ width: isMobile ? 48 : 56, height: isMobile ? 48 : 56, borderRadius: 14, objectFit: 'contain', marginBottom: 16 }} />
@@ -216,18 +258,40 @@ export default function ChatInterface({
         )}
 
         {messages.map(msg => (
-          <div key={msg.id} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 10, animation: 'msgIn 0.25s ease' }}>
+          <div
+            key={msg.id}
+            style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 10, animation: 'msgIn 0.25s ease' }}
+            onMouseEnter={() => msg.role === 'ai' && setHoveredMsgId(msg.id)}
+            onMouseLeave={() => setHoveredMsgId(null)}
+          >
             {msg.role === 'ai' && (
               <img src="/icon-192.png" alt="ESIGN" style={{ width: 26, height: 26, borderRadius: 6, objectFit: 'contain', flexShrink: 0, marginRight: 8, marginTop: 2 }} />
             )}
-            <div style={{
-              maxWidth: isMobile ? '88%' : '72%', padding: '10px 14px',
-              borderRadius: msg.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
-              background: msg.role === 'user' ? c.userBubble : c.aiBg,
-              color: msg.role === 'user' ? 'white' : c.text, fontSize: 13.5, lineHeight: 1.6,
-              border: msg.role === 'ai' ? `1px solid ${c.aiBorder}` : 'none',
-              wordBreak: 'break-word', overflowWrap: 'break-word',
-            }}>{msg.content}</div>
+
+            <div style={{ maxWidth: isMobile ? '88%' : '72%', display: 'flex', flexDirection: 'column' }}>
+              <div style={{
+                padding: '10px 14px',
+                borderRadius: msg.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                background: msg.role === 'user' ? c.userBubble : c.aiBg,
+                color: msg.role === 'user' ? 'white' : c.text,
+                fontSize: 13.5, lineHeight: 1.6,
+                border: msg.role === 'ai' ? `1px solid ${c.aiBorder}` : 'none',
+                wordBreak: 'break-word', overflowWrap: 'break-word',
+              }}>
+                {msg.content}
+
+                {/* ✅ MessageActions — visible au survol sur desktop, toujours sur mobile */}
+                {msg.role === 'ai' && (
+                  <div style={{ opacity: isMobile ? 1 : hoveredMsgId === msg.id ? 1 : 0, transition: 'opacity 0.2s' }}>
+                    <MessageActions
+                      content={msg.content}
+                      isDark={isDark}
+                      onRefresh={() => handleRefresh(msg.id)}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         ))}
 
@@ -245,13 +309,8 @@ export default function ChatInterface({
 
       {/* Input */}
       <div style={{ padding: isMobile ? '6px 8px 8px' : '12px 16px 16px', flexShrink: 0 }}>
-        <div style={{
-          width: '100%', maxWidth: 720, margin: '0 auto', display: 'flex', alignItems: 'flex-end', gap: 6,
-          background: c.inputBg, borderRadius: 18, border: `1.5px solid ${c.inputBorder}`,
-          padding: '4px 4px 4px 8px',
-        }}>
-          
-          {/* Bouton + */}
+        <div style={{ width: '100%', maxWidth: 720, margin: '0 auto', display: 'flex', alignItems: 'flex-end', gap: 6, background: c.inputBg, borderRadius: 18, border: `1.5px solid ${c.inputBorder}`, padding: '4px 4px 4px 8px' }}>
+
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <button onClick={() => setShowMenu(!showMenu)}
               style={{ width: 34, height: 34, borderRadius: 12, border: 'none', background: 'transparent', color: c.mute, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -275,23 +334,11 @@ export default function ChatInterface({
             placeholder={placeholder} rows={1}
             style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', color: c.text, fontSize: 16, resize: 'none', maxHeight: 100, fontFamily: 'inherit', padding: '8px 0' }} />
 
-          {/* Micro vocal */}
-          <button
-            onMouseDown={startRecording}
-            onMouseUp={stopRecording}
-            onTouchStart={startRecording}
-            onTouchEnd={stopRecording}
-            style={{
-              width: 34, height: 34, borderRadius: 12, border: 'none',
-              background: isRecording ? '#ff4455' : 'transparent',
-              color: isRecording ? 'white' : c.mute,
-              cursor: 'pointer', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s',
-            }}>
+          <button onMouseDown={startRecording} onMouseUp={stopRecording} onTouchStart={startRecording} onTouchEnd={stopRecording}
+            style={{ width: 34, height: 34, borderRadius: 12, border: 'none', background: isRecording ? '#ff4455' : 'transparent', color: isRecording ? 'white' : c.mute, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="1" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0014 0"/></svg>
           </button>
 
-          {/* Envoyer */}
           <button onClick={handleSend} disabled={!input.trim() || loading}
             style={{ width: 34, height: 34, borderRadius: 12, border: 'none', background: input.trim() ? theme.accentGradient : 'transparent', color: input.trim() ? 'white' : c.mute, cursor: input.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: input.trim() ? 1 : 0.4, boxShadow: input.trim() ? `0 4px 14px ${theme.accent}40` : 'none' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>

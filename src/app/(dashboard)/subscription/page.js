@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PaymentModal from '../../components/PaymentModal';
 import { useTheme } from '../../providers';
+import { useUser } from '../layout';
 
-export default function SubscriptionPage({ user, userData }) {
+export default function SubscriptionPage() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { user, userData } = useUser();
   const [showPayment, setShowPayment] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('yearly');
   const router = useRouter();
@@ -191,7 +193,7 @@ export default function SubscriptionPage({ user, userData }) {
 
       {/* Modal */}
       <PaymentModal
-        userId={user?.uid}
+        userId={user?.id}
         isOpen={showPayment}
         onClose={() => setShowPayment(false)}
         onSuccess={() => router.refresh()}

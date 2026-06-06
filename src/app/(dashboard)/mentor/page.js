@@ -4,21 +4,25 @@ import { useState, useRef, useEffect } from 'react';
 import ChatInterface from '../../components/ChatInterface';
 import SubscriptionGuard from '../../components/SubscriptionGuard';
 import { useTheme } from '../../providers';
+import { supabase } from '../../lib/supabase';
+import { useUser } from '../layout';
 
 const HEADER_GENERAL = 48;
 
-export default function MentorPage({ user, userData }) {
+export default function MentorPage() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { user, userData } = useUser();
   const bandeauRef = useRef(null);
   const [bandeauHeight, setBandeauHeight] = useState(160);
 
-  const [progress] = useState({
-    sessionsCompleted: 12,
-    objectivesAchieved: 5,
-    currentStreak: 7,
-    progressPercent: 60,
+  const [progress, setProgress] = useState({
+    sessionsCompleted: 0,
+    objectivesAchieved: 0,
+    currentStreak: 0,
+    progressPercent: 0,
   });
+  const [loading, setLoading] = useState(true);
 
   const mentorSuggestions = [
     'Comment organiser mes revisions ?',
@@ -38,6 +42,29 @@ export default function MentorPage({ user, userData }) {
     bgCard: isDark ? 'rgba(8,8,32,0.95)' : 'rgba(255,255,255,0.95)',
   };
 
+  // Charger les stats mentor depuis Supabase
+  useEffect(() => {
+    if (!user) return;
+
+    supabase
+      .from('users')
+      .select('mentor_sessions, mentor_objectives, mentor_streak, mentor_progress')
+      .eq('id', user.id)
+      .single()
+      .then(({ data, error }) => {
+        if (!error && data) {
+          setProgress({
+            sessionsCompleted: data.mentor_sessions || 0,
+            objectivesAchieved: data.mentor_objectives || 0,
+            currentStreak: data.mentor_streak || 0,
+            progressPercent: data.mentor_progress || 0,
+          });
+        }
+        setLoading(false);
+      });
+  }, [user]);
+
+  // Observer la hauteur du bandeau
   useEffect(() => {
     if (!bandeauRef.current) return;
     const observer = new ResizeObserver(() => {
@@ -49,9 +76,8 @@ export default function MentorPage({ user, userData }) {
   }, []);
 
   return (
-    <SubscriptionGuard userId={user?.uid}>
+    <SubscriptionGuard userId={user?.id}>
       <div style={{ height: '100%', position: 'relative', fontFamily: 'Arial, sans-serif' }}>
-
         {/* BANDEAU FIXE */}
         <div
           ref={bandeauRef}
@@ -75,37 +101,43 @@ export default function MentorPage({ user, userData }) {
               <span style={{ color: c.text, fontSize: 17, fontWeight: 700 }}>Coaching Personnalise</span>
             </div>
             <span style={{ color: c.text2, fontSize: 12 }}>
-              {userData?.filiere} {userData?.niveau && `- ${userData.niveau}`}
+              {userData?.filiere || ''} {userData?.niveau ? `- ${userData.niveau}` : ''}
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: 28, marginBottom: 14 }}>
-            <div>
-              <span style={{ color: c.accent, fontSize: 24, fontWeight: 700 }}>{progress.sessionsCompleted}</span>
-              <span style={{ display: 'block', color: c.mute, fontSize: 10, textTransform: 'uppercase', marginTop: 2 }}>Sessions</span>
-            </div>
-            <div>
-              <span style={{ color: '#4488ff', fontSize: 24, fontWeight: 700 }}>{progress.objectivesAchieved}</span>
-              <span style={{ display: 'block', color: c.mute, fontSize: 10, textTransform: 'uppercase', marginTop: 2 }}>Objectifs</span>
-            </div>
-            <div>
-              <span style={{ color: '#ffb347', fontSize: 24, fontWeight: 700 }}>{progress.currentStreak}</span>
-              <span style={{ display: 'block', color: c.mute, fontSize: 10, textTransform: 'uppercase', marginTop: 2 }}>Jours consecutifs</span>
-            </div>
-          </div>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: 20, color: c.mute }}>Chargement...</div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', gap: 28, marginBottom: 14 }}>
+                <div>
+                  <span style={{ color: c.accent, fontSize: 24, fontWeight: 700 }}>{progress.sessionsCompleted}</span>
+                  <span style={{ display: 'block', color: c.mute, fontSize: 10, textTransform: 'uppercase', marginTop: 2 }}>Sessions</span>
+                </div>
+                <div>
+                  <span style={{ color: '#4488ff', fontSize: 24, fontWeight: 700 }}>{progress.objectivesAchieved}</span>
+                  <span style={{ display: 'block', color: c.mute, fontSize: 10, textTransform: 'uppercase', marginTop: 2 }}>Objectifs</span>
+                </div>
+                <div>
+                  <span style={{ color: '#ffb347', fontSize: 24, fontWeight: 700 }}>{progress.currentStreak}</span>
+                  <span style={{ display: 'block', color: c.mute, fontSize: 10, textTransform: 'uppercase', marginTop: 2 }}>Jours consecutifs</span>
+                </div>
+              </div>
 
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-              <span style={{ color: c.text2, fontSize: 11 }}>Progression globale</span>
-              <span style={{ color: c.accent, fontSize: 11, fontWeight: 600 }}>{progress.progressPercent}%</span>
-            </div>
-            <div style={{ height: 6, borderRadius: 3, background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-              <div style={{ height: '100%', width: `${progress.progressPercent}%`, borderRadius: 3, background: 'linear-gradient(90deg, #00cc88, #4488ff)', transition: 'width 1s ease' }} />
-            </div>
-          </div>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                  <span style={{ color: c.text2, fontSize: 11 }}>Progression globale</span>
+                  <span style={{ color: c.accent, fontSize: 11, fontWeight: 600 }}>{progress.progressPercent}%</span>
+                </div>
+                <div style={{ height: 6, borderRadius: 3, background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+                  <div style={{ height: '100%', width: `${progress.progressPercent}%`, borderRadius: 3, background: 'linear-gradient(90deg, #00cc88, #4488ff)', transition: 'width 1s ease' }} />
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* CHAT — commence sous le bandeau */}
+        {/* CHAT */}
         <div style={{
           position: 'absolute',
           top: bandeauHeight,
@@ -114,14 +146,13 @@ export default function MentorPage({ user, userData }) {
           bottom: 0,
         }}>
           <ChatInterface
-            userId={user?.uid}
+            userId={user?.id}
             mode="mentor"
             isDark={isDark}
             placeholder="Parlez de vos objectifs, difficultes, progression..."
             suggestions={mentorSuggestions}
           />
         </div>
-
       </div>
     </SubscriptionGuard>
   );

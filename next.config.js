@@ -38,6 +38,22 @@ const nextConfig = {
       ],
     },
   ],
+  // Empêcher Watchpack de tenter de lister les fichiers système Windows
+  webpack: (config) => {
+    config.watchOptions = {
+      ignored: [
+        '**/pagefile.sys',
+        '**/swapfile.sys',
+        '**/hiberfil.sys',
+        '**/DumpStack.log.tmp',
+        'C:/pagefile.sys',
+        'C:/swapfile.sys',
+        'C:/hiberfil.sys',
+        'C:/DumpStack.log.tmp',
+      ],
+    };
+    return config;
+  },
 };
 
 module.exports = withPWA(nextConfig);

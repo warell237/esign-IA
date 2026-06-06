@@ -2,13 +2,16 @@
 
 import { useState, useRef, useEffect } from 'react';
 import ChatInterface from '../../components/ChatInterface';
+import SubscriptionGuard from '../../components/SubscriptionGuard';
 import { useTheme } from '../../providers';
+import { useUser } from '../layout';
 
 const HEADER_GENERAL = 48;
 
-export default function ProfPage({ user, userData }) {
+export default function ProfPage() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { user, userData } = useUser();
   const [searchQuery, setSearchQuery] = useState('');
   const bandeauRef = useRef(null);
   const [bandeauHeight, setBandeauHeight] = useState(160);
@@ -51,9 +54,10 @@ export default function ProfPage({ user, userData }) {
   }, []);
 
   return (
-    <div style={{ height: '100%', position: 'relative', fontFamily: 'Arial, sans-serif' }}>
-
-      {/* BANDEAU FIXE */}
+    <SubscriptionGuard userId={user?.id}>
+      <div style={{ height: '100%', position: 'relative', fontFamily: 'Arial, sans-serif' }}>
+      
+        {/* BANDEAU FIXE */}
       <div
         ref={bandeauRef}
         style={{
@@ -117,6 +121,7 @@ export default function ProfPage({ user, userData }) {
           ))}
         </div>
       </div>
+      </div>
 
       {/* CHAT — commence sous le bandeau */}
       <div style={{
@@ -127,7 +132,7 @@ export default function ProfPage({ user, userData }) {
         bottom: 0,
       }}>
         <ChatInterface
-          userId={user?.uid}
+          userId={user?.id}
           mode="prof"
           isDark={isDark}
           initialMessages={searchQuery ? [{ role: 'user', content: searchQuery, id: 1 }] : []}
@@ -136,7 +141,6 @@ export default function ProfPage({ user, userData }) {
           showQuota={false}
         />
       </div>
-
-    </div>
+    </SubscriptionGuard>
   );
 }

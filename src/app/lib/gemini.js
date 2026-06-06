@@ -79,6 +79,9 @@ export async function sendToGemini(message, mode, userData, history = []) {
   if (!apiKey) {
     throw new Error('Clé API Gemini non configurée');
   }
+  if (!apiUrl) {
+    throw new Error('URL API Gemini non configurée (GEMINI_API_URL)');
+  }
 
   // Construire le corps de la requête
   const systemPrompt = buildSystemPrompt(mode, userData);
@@ -111,6 +114,7 @@ export async function sendToGemini(message, mode, userData, history = []) {
   });
 
   try {
+    console.time('gemini-call');
     const response = await fetch(`${apiUrl}?key=${apiKey}`, {
       method: 'POST',
       headers: {
@@ -132,6 +136,8 @@ export async function sendToGemini(message, mode, userData, history = []) {
         ],
       }),
     });
+
+    console.timeEnd('gemini-call');
 
     if (!response.ok) {
       const errorData = await response.json();

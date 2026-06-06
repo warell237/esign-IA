@@ -1,17 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ChatInterface from '../../components/ChatInterface';
 import SubscriptionGuard from '../../components/SubscriptionGuard';
 import { useTheme } from '../../providers';
+import { supabase } from '../../lib/supabase';
+import { useUser } from '../layout';
 
-export default function BusinessPage({ user, userData }) {
+export default function BusinessPage() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { user, userData } = useUser();
 
-  const [weeklyStrategy] = useState(
+  const [weeklyStrategy, setWeeklyStrategy] = useState(
     'Cette semaine : Proposez vos services de creation de CV et lettres de motivation aux etudiants de votre promo via WhatsApp.'
   );
+  const [loading, setLoading] = useState(true);
 
   const businessSuggestions = [
     'Comment vendre sur Alibaba depuis le Cameroun ?',
@@ -33,27 +37,41 @@ export default function BusinessPage({ user, userData }) {
     accentLight: isDark ? 'rgba(255,107,107,0.1)' : 'rgba(255,107,107,0.05)',
   };
 
-  return (
-    <SubscriptionGuard userId={user?.uid}>
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif', overflow: 'hidden' }}>
+  // Charger la stratégie depuis Supabase
+  useEffect(() => {
+    if (!user) return;
 
+    supabase
+      .from('users')
+      .select('business_strategy')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.business_strategy) {
+          setWeeklyStrategy(data.business_strategy);
+        }
+        setLoading(false);
+      });
+  }, [user]);
+
+  return (
+    <SubscriptionGuard userId={user?.id}>
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif', overflow: 'hidden' }}>
         {/* Bandeau Business */}
         <div style={{
-          padding: '16px 20px', 
+          padding: '16px 20px',
           borderBottom: `1px solid ${c.border}`,
-          background: c.bgCard, backdropFilter: 'blur(20px)', 
+          background: c.bgCard, backdropFilter: 'blur(20px)',
           flexShrink: 0,
-          position: 'sticky',  
-          top: 0,             
-          zIndex: 5,      
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
         }}>
-          {/* Titre */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
             <img src="/icon-192.png" alt="ESIGN" style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'contain' }} />
             <span style={{ color: c.text, fontSize: 17, fontWeight: 700 }}>Mode Business</span>
           </div>
 
-          {/* Strategie de la semaine */}
           <div style={{
             padding: '14px 16px', borderRadius: 12,
             background: c.accentLight,
@@ -66,7 +84,7 @@ export default function BusinessPage({ user, userData }) {
               Strategie de la semaine
             </span>
             <p style={{ color: c.text, fontSize: 13, margin: '6px 0 0 0', lineHeight: 1.5 }}>
-              {weeklyStrategy}
+              {loading ? 'Chargement...' : weeklyStrategy}
             </p>
           </div>
         </div>
@@ -74,7 +92,7 @@ export default function BusinessPage({ user, userData }) {
         {/* Chat */}
         <div style={{ flex: 1, minHeight: 0 }}>
           <ChatInterface
-            userId={user?.uid}
+            userId={user?.id}
             mode="business"
             isDark={isDark}
             placeholder="Comment generer des revenus avec vos competences ?"

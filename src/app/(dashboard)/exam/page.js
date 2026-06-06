@@ -4,22 +4,26 @@ import { useState, useRef, useEffect } from 'react';
 import ChatInterface from '../../components/ChatInterface';
 import SubscriptionGuard from '../../components/SubscriptionGuard';
 import { useTheme } from '../../providers';
+import { supabase } from '../../lib/supabase';
+import { useUser } from '../layout';
 
 const HEADER_GENERAL = 48;
 
-export default function ExamPage({ user, userData }) {
+export default function ExamPage() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const bandeauRef = useRef(null);
   const [bandeauHeight, setBandeauHeight] = useState(160);
+  const { user, userData } = useUser();
 
   const [selectedMatiere, setSelectedMatiere] = useState('');
   const [difficulty, setDifficulty] = useState('moyen');
-  const [stats] = useState({
-    exercisesDone: 24,
-    averageScore: 13.5,
-    bestMatiere: 'Programmation',
+  const [stats, setStats] = useState({
+    exercisesDone: 0,
+    averageScore: 0,
+    bestMatiere: '-',
   });
+  const [loading, setLoading] = useState(true);
 
   const matieres = [
     'Mathematiques', 'Programmation', 'Reseaux',
@@ -51,6 +55,27 @@ export default function ExamPage({ user, userData }) {
     bgCard: isDark ? 'rgba(8,8,32,0.95)' : 'rgba(255,255,255,0.95)',
   };
 
+  // Charger les stats depuis Supabase
+  useEffect(() => {
+    if (!user) return;
+
+    supabase
+      .from('users')
+      .select('exam_done, exam_average, exam_best_matiere')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setStats({
+            exercisesDone: data.exam_done || 0,
+            averageScore: data.exam_average || 0,
+            bestMatiere: data.exam_best_matiere || '-',
+          });
+        }
+        setLoading(false);
+      });
+  }, [user]);
+
   useEffect(() => {
     if (!bandeauRef.current) return;
     const observer = new ResizeObserver(() => {
@@ -62,9 +87,8 @@ export default function ExamPage({ user, userData }) {
   }, []);
 
   return (
-    <SubscriptionGuard userId={user?.uid}>
+    <SubscriptionGuard userId={user?.id}>
       <div style={{ height: '100%', position: 'relative', fontFamily: 'Arial, sans-serif' }}>
-
         {/* BANDEAU FIXE */}
         <div
           ref={bandeauRef}
@@ -88,7 +112,7 @@ export default function ExamPage({ user, userData }) {
               <span style={{ color: c.text, fontSize: 17, fontWeight: 700 }}>Mode Examen</span>
             </div>
             <span style={{ color: c.text2, fontSize: 12 }}>
-              {stats.exercisesDone} exercices - Moy: {stats.averageScore}/20
+              {loading ? 'Chargement...' : `${stats.exercisesDone} exercices - Moy: ${stats.averageScore}/20`}
             </span>
           </div>
 
@@ -127,7 +151,7 @@ export default function ExamPage({ user, userData }) {
           </div>
         </div>
 
-        {/* CHAT — commence sous le bandeau */}
+        {/* CHAT */}
         <div style={{
           position: 'absolute',
           top: bandeauHeight,
@@ -136,14 +160,13 @@ export default function ExamPage({ user, userData }) {
           bottom: 0,
         }}>
           <ChatInterface
-            userId={user?.uid}
+            userId={user?.id}
             mode="exam"
             isDark={isDark}
             placeholder={`Exercice ${difficulty}${selectedMatiere ? ` en ${selectedMatiere}` : ''}...`}
             suggestions={examSuggestions}
           />
         </div>
-
       </div>
     </SubscriptionGuard>
   );
