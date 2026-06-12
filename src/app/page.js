@@ -91,8 +91,8 @@ export default function HomePage() {
           margin: `0 auto ${isMobile ? '15px' : '25px'} auto`,
           animation: 'pulse 3s ease-in-out infinite',
         }}>
-          <Image
-            src="/logo-esign.png"
+          <img
+            src={theme === 'dark' ? '/logo-esign-dark.png' : '/logo-esign-light.png'}
             alt="ESIGN Logo"
             width={logoSize}
             height={logoSize}
@@ -211,7 +211,7 @@ export default function HomePage() {
           fontSize: isMobile ? '7px' : '9px',
           margin: '2px 0 0 0',
         }}>
-          Realise par Empire Dev
+          Realise par Empire Digital
         </p>
       </div>
 

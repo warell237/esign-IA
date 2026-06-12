@@ -1,5 +1,5 @@
 // ============================================
-// src/app/lib/auth.js - CORRIGÉ
+// src/app/lib/auth.js 
 // ============================================
 
 import { supabase } from './supabase';

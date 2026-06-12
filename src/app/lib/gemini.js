@@ -2,7 +2,6 @@
 // Construire le prompt système selon le mode
 // ============================================
 function buildSystemPrompt(mode, userData) {
-  // Base commune à tous les modes
   const basePrompt = `Tu es ESIGN AI, l'assistant officiel de l'École Supérieure Internationale de Génie Numérique (ESIGN), située à Sangmélima au Cameroun, faisant partie de l'UIECC (Université Inter-États Congo-Cameroun).
 
 L'école propose 3 filières :
@@ -13,10 +12,9 @@ L'école propose 3 filières :
 Niveaux : Licence 1, 2, 3 et Master 1, 2.
 Diplôme : Diplôme d'ingénieur de génie numérique, grade de Master.
 
-Tu réponds en français. Tu es utile, précis, encourageant. Tu varies tes formulations.
+Tu réponds en français, anglais et autre langue. Tu es utile, précis, encourageant. Tu varies tes formulations.
 L'étudiant actuel est en ${userData?.filiere || 'non spécifié'}, niveau ${userData?.niveau || 'non spécifié'}.`;
 
-  // Prompts spécifiques selon le mode
   const modePrompts = {
     chat: `
 [MODE CHAT GÉNÉRAL]
@@ -70,93 +68,62 @@ Sois précis, organisé, factuel. Si tu ne sais pas, dis-le honnêtement.`,
 }
 
 // ============================================
-// Envoyer un message à Gemini
+// Envoyer un message via Groq
 // ============================================
 export async function sendToGemini(message, mode, userData, history = []) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  const apiUrl = process.env.GEMINI_API_URL;
+  const apiKey = process.env.GROQ_API_KEY;
 
   if (!apiKey) {
-    throw new Error('Clé API Gemini non configurée');
-  }
-  if (!apiUrl) {
-    throw new Error('URL API Gemini non configurée (GEMINI_API_URL)');
+    throw new Error('Clé API Groq non configurée (GROQ_API_KEY)');
   }
 
-  // Construire le corps de la requête
   const systemPrompt = buildSystemPrompt(mode, userData);
 
-  // Formater l'historique pour Gemini
-  const contents = [];
+  // Construire les messages au format OpenAI/Groq
+  const messages = [
+    { role: 'system', content: systemPrompt },
+  ];
 
-  // Ajouter le prompt système comme premier message du modèle
-  contents.push({
-    role: 'user',
-    parts: [{ text: systemPrompt }],
-  });
-  contents.push({
-    role: 'model',
-    parts: [{ text: 'Compris. Je suis prêt à aider.' }],
-  });
-
-  // Ajouter l'historique de la conversation
+  // Ajouter l'historique
   for (const msg of history) {
-    contents.push({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.content }],
+    messages.push({
+      role: msg.role === 'user' ? 'user' : 'assistant',
+      content: msg.content,
     });
   }
 
   // Ajouter le message actuel
-  contents.push({
-    role: 'user',
-    parts: [{ text: message }],
-  });
+  messages.push({ role: 'user', content: message });
 
   try {
-    console.time('gemini-call');
-    const response = await fetch(`${apiUrl}?key=${apiKey}`, {
+    console.time('groq-call');
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: contents,
-        generationConfig: {
-          temperature: 0.8, // Créativité (0 = précis, 1 = créatif)
-          topP: 0.9,
-          topK: 40,
-          maxOutputTokens: 2048,
-        },
-        safetySettings: [
-          {
-            category: 'HARM_CATEGORY_HARASSMENT',
-            threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-          },
-        ],
+        model: 'llama-3.1-8b-instant',  // ← MODÈLE CORRIGÉ (était llama3-8b-8192)
+        messages: messages,
+        temperature: 0.8,
+        max_tokens: 2048,
+        top_p: 0.9,
       }),
     });
-
-    console.timeEnd('gemini-call');
+    console.timeEnd('groq-call');
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error?.message || 'Erreur API Gemini');
+      throw new Error(errorData.error?.message || 'Erreur API Groq');
     }
 
     const data = await response.json();
+    const replyText = data.choices?.[0]?.message?.content || 'Désolé, je n\'ai pas pu générer de réponse.';
 
-    // Extraire le texte de la réponse
-    const replyText =
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      'Désolé, je n\'ai pas pu générer de réponse.';
-
-    return {
-      success: true,
-      reply: replyText,
-    };
+    return { success: true, reply: replyText };
   } catch (error) {
-    console.error('Erreur Gemini:', error);
+    console.error('Erreur Groq:', error);
     return {
       success: false,
       error: error.message,
