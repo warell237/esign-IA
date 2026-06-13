@@ -1,8 +1,13 @@
+// ============================================
+// ChatInterface.js
+// ============================================
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import MessageActions from './MessageActions';
+import Markdown from 'react-markdown';
 
 const THEMES = {
   chat: {
@@ -37,6 +42,93 @@ const THEMES = {
   },
 };
 
+function MarkdownContent({ content, isDark, textColor }) {
+  return (
+    <>
+      <Markdown
+        components={{
+          p: ({ children }) => (
+            <p style={{ margin: '0 0 8px 0', lineHeight: 1.7, color: textColor }}>
+              {children}
+            </p>
+          ),
+          strong: ({ children }) => (
+            <strong style={{ fontWeight: 700, color: textColor }}>{children}</strong>
+          ),
+          em: ({ children }) => (
+            <em style={{ fontStyle: 'italic', color: textColor }}>{children}</em>
+          ),
+          h1: ({ children }) => (
+            <h1 style={{ fontSize: 18, fontWeight: 700, margin: '12px 0 6px', color: textColor }}>{children}</h1>
+          ),
+          h2: ({ children }) => (
+            <h2 style={{ fontSize: 16, fontWeight: 700, margin: '10px 0 5px', color: textColor }}>{children}</h2>
+          ),
+          h3: ({ children }) => (
+            <h3 style={{ fontSize: 14, fontWeight: 700, margin: '8px 0 4px', color: textColor }}>{children}</h3>
+          ),
+          ul: ({ children }) => (
+            <ul style={{ margin: '6px 0', paddingLeft: 20, color: textColor }}>{children}</ul>
+          ),
+          ol: ({ children }) => (
+            <ol style={{ margin: '6px 0', paddingLeft: 20, color: textColor }}>{children}</ol>
+          ),
+          li: ({ children }) => (
+            <li style={{ margin: '3px 0', lineHeight: 1.6, color: textColor }}>{children}</li>
+          ),
+          code: ({ inline, children }) => inline ? (
+            <code style={{
+              background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+              color: isDark ? '#7dd3fc' : '#0369a1',
+              padding: '1px 6px', borderRadius: 4,
+              fontFamily: 'monospace', fontSize: 13,
+            }}>
+              {children}
+            </code>
+          ) : (
+            <code style={{ fontFamily: 'monospace', fontSize: 13, color: isDark ? '#7dd3fc' : '#0369a1' }}>
+              {children}
+            </code>
+          ),
+          pre: ({ children }) => (
+            <pre style={{
+              background: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.06)',
+              border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.1)',
+              borderRadius: 8, padding: '12px 14px',
+              overflowX: 'auto', margin: '8px 0',
+              fontFamily: 'monospace', fontSize: 13,
+              lineHeight: 1.6,
+              color: isDark ? '#e2e8f0' : '#1e293b',
+            }}>
+              {children}
+            </pre>
+          ),
+          hr: () => (
+            <hr style={{ border: 'none', borderTop: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)', margin: '10px 0' }} />
+          ),
+          blockquote: ({ children }) => (
+            <blockquote style={{
+              borderLeft: `3px solid ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
+              paddingLeft: 12, margin: '8px 0',
+              color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)',
+              fontStyle: 'italic',
+            }}>
+              {children}
+            </blockquote>
+          ),
+          a: ({ href, children }) => (
+            <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: '#4488ff', textDecoration: 'underline' }}>
+              {children}
+            </a>
+          ),
+        }}
+      >
+        {content}
+      </Markdown>
+    </>
+  );
+}
+
 export default function ChatInterface({
   userId,
   mode = 'chat',
@@ -52,8 +144,8 @@ export default function ChatInterface({
   const [isMobile, setIsMobile] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef(null);
-  // ID du message AI survolé pour afficher les actions
   const [hoveredMsgId, setHoveredMsgId] = useState(null);
+  const [showRainbow, setShowRainbow] = useState(false);
 
   const c = {
     border: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
@@ -109,10 +201,6 @@ export default function ChatInterface({
     const text = input.trim();
     if (!text || loading) return;
 
-    console.log('userId:', userId);
-console.log('message:', text);
-
-
     const userMsg = { role: 'user', content: text, id: Date.now() };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
@@ -120,54 +208,80 @@ console.log('message:', text);
     setLoading(true);
     setError('');
 
+    // ✅ Activer l'arc-en-ciel au premier message
+    if (messages.length === 0) {
+      setShowRainbow(true);
+      setTimeout(() => setShowRainbow(false), 5000);
+    }
+
     try {
-      if (onSend) {
-        await onSend(text, messages, (reply) => {
-          const aiMsg = { role: 'ai', content: reply, id: Date.now() + 1 };
-          const finalMessages = [...newMessages, aiMsg];
-          setMessages(finalMessages);
-          saveConversation(finalMessages, conversationId);
-        });
-      } else {
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text, mode, userId, history: messages.slice(-20) }),
-        });
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, mode, userId, history: messages.slice(-20) }),
+      });
+
+      if (!res.ok) {
         const data = await res.json();
-        if (data.success) {
-          const aiMsg = { role: 'ai', content: data.reply, id: Date.now() + 1 };
-          const finalMessages = [...newMessages, aiMsg];
-          setMessages(finalMessages);
-          saveConversation(finalMessages, conversationId);
-          if (data.quota) setQuota(data.quota);
-        } else if (data.error === 'QUOTA_EXCEEDED') {
-          setError(data.message);
-        } else {
-          setError(data.error || 'Erreur');
+        if (data.error === 'QUOTA_EXCEEDED') setError(data.message);
+        else setError(data.error || 'Erreur');
+        setLoading(false);
+        return;
+      }
+
+      const aiMsgId = Date.now() + 1;
+      const aiMsg = { role: 'ai', content: '', id: aiMsgId };
+      setMessages(prev => [...prev, aiMsg]);
+      setLoading(false);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const delta = parsed.choices?.[0]?.delta?.content || '';
+            if (delta) {
+              fullText += delta;
+              setMessages(prev => prev.map(m =>
+                m.id === aiMsgId ? { ...m, content: fullText } : m
+              ));
+            }
+          } catch {}
         }
       }
+
+      const finalMessages = [...newMessages, { role: 'ai', content: fullText, id: aiMsgId }];
+      saveConversation(finalMessages, conversationId);
+
     } catch (err) {
       setError('Erreur de connexion au serveur');
-    } finally {
       setLoading(false);
     }
   };
 
-  // Régénérer la dernière réponse IA
   const handleRefresh = async (msgId) => {
     const msgIndex = messages.findIndex(m => m.id === msgId);
     if (msgIndex === -1) return;
-    // Trouver le message user avant ce message AI
     const userMsg = messages[msgIndex - 1];
     if (!userMsg || userMsg.role !== 'user') return;
-
-    // Supprimer la réponse actuelle
     const trimmed = messages.slice(0, msgIndex);
     setMessages(trimmed);
     setLoading(true);
     setError('');
-
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -217,7 +331,20 @@ console.log('message:', text);
   };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif', minHeight: 0, overflow: 'hidden' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif', minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+
+      {/* ✅ Arc-en-ciel au premier message */}
+    {showRainbow && (
+  <div style={{
+    position: 'absolute',
+    inset: 0,
+    zIndex: 0,
+    pointerEvents: 'none',
+    background: 'linear-gradient(135deg, #ff6b6b, #ffb347, #ffd93d, #6bcb77, #4d96ff, #9b59b6, #ff6b6b)',
+    backgroundSize: '400% 400%',
+    animation: 'rainbowFlow 5s ease-out forwards',
+  }} />
+)}
 
       {showQuota && quota && (
         <div style={{ padding: '6px 14px', textAlign: 'center', flexShrink: 0, background: isDark ? 'rgba(68,136,255,0.1)' : 'rgba(68,136,255,0.05)', color: theme.accent, fontSize: 11, borderBottom: `1px solid ${c.border}` }}>
@@ -234,8 +361,7 @@ console.log('message:', text);
         </div>
       )}
 
-      {/* Zone messages */}
-      <div ref={messagesContainerRef} style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '12px 10px' : '20px 20px', WebkitOverflowScrolling: 'touch', minHeight: 0, overscrollBehavior: 'contain' }}>
+      <div ref={messagesContainerRef} style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '12px 10px' : '20px 20px', WebkitOverflowScrolling: 'touch', minHeight: 0, overscrollBehavior: 'contain', position: 'relative', zIndex: 1 }}>
 
         {messages.length === 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100%', textAlign: 'center', padding: '20px 0' }}>
@@ -260,44 +386,58 @@ console.log('message:', text);
         {messages.map(msg => (
           <div
             key={msg.id}
-            style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 10, animation: 'msgIn 0.25s ease' }}
+            style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 16, animation: 'msgIn 0.25s ease' }}
             onMouseEnter={() => msg.role === 'ai' && setHoveredMsgId(msg.id)}
             onMouseLeave={() => setHoveredMsgId(null)}
           >
             {msg.role === 'ai' && (
-              <img src="/icon-192.png" alt="ESIGN" style={{ width: 26, height: 26, borderRadius: 6, objectFit: 'contain', flexShrink: 0, marginRight: 8, marginTop: 2 }} />
+              <img src="/icon-192.png" alt="ESIGN" style={{ width: 28, height: 28, borderRadius: 8, objectFit: 'contain', flexShrink: 0, marginRight: 10, marginTop: 2 }} />
             )}
 
-            <div style={{ maxWidth: isMobile ? '88%' : '72%', display: 'flex', flexDirection: 'column' }}>
-              <div style={{
-                padding: '10px 14px',
-                borderRadius: msg.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
-                background: msg.role === 'user' ? c.userBubble : c.aiBg,
-                color: msg.role === 'user' ? 'white' : c.text,
-                fontSize: 13.5, lineHeight: 1.6,
-                border: msg.role === 'ai' ? `1px solid ${c.aiBorder}` : 'none',
-                wordBreak: 'break-word', overflowWrap: 'break-word',
-              }}>
-                {msg.content}
+            <div style={{ maxWidth: isMobile ? '92%' : '78%', display: 'flex', flexDirection: 'column' }}>
 
-                {/* ✅ MessageActions — visible au survol sur desktop, toujours sur mobile */}
-                {msg.role === 'ai' && (
-                  <div style={{ opacity: isMobile ? 1 : hoveredMsgId === msg.id ? 1 : 0, transition: 'opacity 0.2s' }}>
+              {msg.role === 'user' && (
+                <div style={{
+                  padding: '10px 14px',
+                  borderRadius: '18px 18px 4px 18px',
+                  background: c.userBubble,
+                  color: 'white',
+                  fontSize: 14, lineHeight: 1.6,
+                  wordBreak: 'break-word', overflowWrap: 'break-word',
+                  alignSelf: 'flex-end',
+                }}>
+                  {msg.content}
+                </div>
+              )}
+
+              {msg.role === 'ai' && (
+                <div style={{
+                  fontSize: 14, lineHeight: 1.7,
+                  color: c.text,
+                  wordBreak: 'break-word', overflowWrap: 'break-word',
+                }}>
+                  <MarkdownContent content={msg.content} isDark={isDark} textColor={c.text} />
+
+                  <div style={{
+                    opacity: isMobile ? 1 : hoveredMsgId === msg.id ? 1 : 0,
+                    transition: 'opacity 0.2s',
+                    marginTop: 4,
+                  }}>
                     <MessageActions
                       content={msg.content}
                       isDark={isDark}
                       onRefresh={() => handleRefresh(msg.id)}
                     />
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         ))}
 
         {loading && (
           <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 10 }}>
-            <img src="/icon-192.png" alt="ESIGN" style={{ width: 26, height: 26, borderRadius: 6, objectFit: 'contain', marginRight: 8 }} />
+            <img src="/icon-192.png" alt="ESIGN" style={{ width: 28, height: 28, borderRadius: 8, objectFit: 'contain', marginRight: 10 }} />
             <div style={{ padding: '12px 18px', borderRadius: '14px 14px 14px 4px', background: c.aiBg, border: `1px solid ${c.aiBorder}`, display: 'flex', gap: 4 }}>
               {[0, 1, 2].map(i => (
                 <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: theme.accent, animation: `bounce 1.4s infinite ${i * 0.2}s` }} />
@@ -307,8 +447,7 @@ console.log('message:', text);
         )}
       </div>
 
-      {/* Input */}
-      <div style={{ padding: isMobile ? '6px 8px 8px' : '12px 16px 16px', flexShrink: 0 }}>
+      <div style={{ padding: isMobile ? '6px 8px 8px' : '12px 16px 12px', flexShrink: 0, borderTop: `1px solid ${c.border}` }}>
         <div style={{ width: '100%', maxWidth: 720, margin: '0 auto', display: 'flex', alignItems: 'flex-end', gap: 6, background: c.inputBg, borderRadius: 18, border: `1.5px solid ${c.inputBorder}`, padding: '4px 4px 4px 8px' }}>
 
           <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -344,7 +483,8 @@ console.log('message:', text);
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
           </button>
         </div>
-        <p style={{ textAlign: 'center', color: c.mute, fontSize: 9, marginTop: 6 }}>
+
+        <p style={{ textAlign: 'center', color: c.mute, fontSize: 9, marginTop: 5 }}>
           ESIGN AI peut faire des erreurs. Verifiez les informations importantes.
         </p>
       </div>
@@ -352,6 +492,12 @@ console.log('message:', text);
       <style>{`
         @keyframes msgIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes bounce { 0%, 80%, 100% { transform: scale(0.5); opacity: 0.3; } 40% { transform: scale(1); opacity: 1; } }
+        
+       @keyframes rainbowFlow {
+  0% { background-position: 0% 50%; opacity: 0.8; }
+  50% { opacity: 0.4; }
+  100% { background-position: 100% 50%; opacity: 0; }
+}
       `}</style>
     </div>
   );

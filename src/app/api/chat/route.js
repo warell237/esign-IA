@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { sendToGemini } from '../../lib/gemini';
 import { supabase } from '../../lib/supabase';
 
 export async function POST(request) {
@@ -8,23 +7,17 @@ export async function POST(request) {
     const { message, mode, userId, history } = body;
 
     if (!message) {
-      return NextResponse.json(
-        { error: 'Message requis' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Message requis' }, { status: 400 });
     }
 
-    // Si on a un userId, chercher en base. Sinon on traitera comme invité.
+    // Récupérer les données utilisateur
     let userData = null;
     if (userId) {
-      const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
-      if (!error && data) userData = data;
-      else userData = null;
+      const { data } = await supabase.from('users').select('*').eq('id', userId).single();
+      if (data) userData = data;
     }
 
-    // ============================================
-    // 2. Vérifier l'abonnement et le quota
-    // ============================================
+    // Vérifier le quota
     const subscription = userData
       ? {
           plan: userData.subscription_plan || 'free',
@@ -39,66 +32,89 @@ export async function POST(request) {
       subscription.questionsRemaining = subscription.plan === 'premium' ? Infinity : 10;
       subscription.questionsUsed = 0;
       subscription.lastResetDate = today;
-
-      await supabase
-        .from('users')
-        .update({
-          questions_remaining: subscription.plan === 'premium' ? null : 10,
-          questions_used: 0,
-          last_reset_date: today,
-        })
-        .eq('id', userId);
+      await supabase.from('users').update({
+        questions_remaining: subscription.plan === 'premium' ? null : 10,
+        questions_used: 0,
+        last_reset_date: today,
+      }).eq('id', userId);
     }
 
     if (subscription && subscription.plan === 'free' && subscription.questionsRemaining <= 0) {
-      return NextResponse.json(
-        {
-          error: 'QUOTA_EXCEEDED',
-          message: 'Vous avez utilisé toutes vos questions gratuites aujourd\'hui. Passez à Premium pour un accès illimité.',
-        },
-        { status: 403 }
-      );
+      return NextResponse.json({
+        error: 'QUOTA_EXCEEDED',
+        message: 'Vous avez utilisé toutes vos questions gratuites aujourd\'hui. Passez à Premium.',
+      }, { status: 403 });
     }
 
-    // ============================================
-    // 3. Envoyer la question à Gemini
-    // ============================================
-    const result = await sendToGemini(message, mode || 'chat', userData, history || []);
+    // Construire le prompt système (même logique que gemini.js)
+    const systemPrompt = buildSystemPrompt(mode || 'chat', userData);
+    const messages = [{ role: 'system', content: systemPrompt }];
 
-    if (!result || result.success === false) {
-      console.error('Gemini error:', result?.error);
-      return NextResponse.json({ error: 'AI_ERROR', message: result?.error || 'Erreur du service IA' }, { status: 502 });
+    for (const msg of (history || [])) {
+      messages.push({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content,
+      });
     }
+    messages.push({ role: 'user', content: message });
 
-    // Mettre à jour le quota uniquement si on a un utilisateur
-    let quota = null;
-    if (subscription) {
-      if (subscription.plan === 'free') {
-        await supabase
-          .from('users')
-          .update({
-            questions_remaining: subscription.questionsRemaining - 1,
-            questions_used: (subscription.questionsUsed || 0) + 1,
-          })
-          .eq('id', userId);
-      }
-
-      quota = {
-        plan: subscription.plan,
-        questionsRemaining: subscription.plan === 'premium' ? 'Illimité' : subscription.questionsRemaining - 1,
-      };
-    }
-
-    return NextResponse.json({
-      success: true,
-      reply: result.reply,
-      quota,
+    // Appeler Groq en streaming
+    const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        messages: messages,
+        temperature: 0.8,
+        max_tokens: 2048,
+        top_p: 0.9,
+        stream: true,
+      }),
     });
+
+    if (!groqResponse.ok) {
+      const err = await groqResponse.json();
+      throw new Error(err.error?.message || 'Erreur Groq');
+    }
+
+    // Mettre à jour le quota
+    if (subscription && subscription.plan === 'free') {
+      await supabase.from('users').update({
+        questions_remaining: subscription.questionsRemaining - 1,
+        questions_used: (subscription.questionsUsed || 0) + 1,
+      }).eq('id', userId);
+    }
+
+    // Renvoyer le stream directement au client
+    return new Response(groqResponse.body, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
+
   } catch (error) {
     console.error('Erreur API Chat:', error);
-    return NextResponse.json(
-      { error: 'Erreur serveur', message: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
+}
+
+// Version simplifiée du prompt système (copiée de gemini.js)
+function buildSystemPrompt(mode, userData) {
+  const basePrompt = `Tu es ESIGN AI, l'assistant officiel de l'École Supérieure Internationale de Génie Numérique (ESIGN), située à Sangmélima au Cameroun, faisant partie de l'UIECC.
+
+L'école propose 3 filières : Ingénierie des Systèmes Numériques (ISN), Création et Design Numérique (CDN), Ingénierie Numérique Sociotechnique (INS).
+Niveaux : Licence 1, 2, 3 et Master 1, 2.
+
+📝 FORMAT DE RÉPONSE OBLIGATOIRE : Utilise TOUJOURS le format Markdown. Utilise **gras** pour les titres, des listes à puces, des blocs de code \`\`\` pour le code. Sois structuré et aéré.
+
+🚫 RÈGLE D'OR PÉDAGOGIQUE : Ne donne JAMAIS la réponse directement. Guide l'étudiant avec des indices et des questions.
+
+Tu réponds en français. L'étudiant est en ${userData?.filiere || 'non spécifié'}, niveau ${userData?.niveau || 'non spécifié'}.`;
+
+  return basePrompt;
 }
