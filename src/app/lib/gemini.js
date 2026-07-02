@@ -1,11 +1,62 @@
+
+import fs from 'fs';
+import path from 'path';
+
 // ============================================
-// src/app/lib/gemini.js
+// Charger les connaissances depuis data/
 // ============================================
+function loadKnowledge(userData) {
+  const dataDir = path.join(process.cwd(), 'data');
+  let knowledge = '';
+
+  // Fichiers communs (toujours chargés)
+  const commonFiles = [
+    'ecole/infos.txt',
+    'business/strategies.txt',
+    'professeurs/contacts.txt',
+    'app/about.txt',
+    'matieres/N1/S1.txt'
+  ];
+
+  for (const file of commonFiles) {
+    try {
+      const content = fs.readFileSync(path.join(dataDir, file), 'utf-8');
+      knowledge += `\n--- ${file} ---\n${content}\n`;
+    } catch (e) {
+      // Fichier non trouvé, ignoré
+    }
+  }
+
+  // Charger les matières selon le niveau de l'étudiant
+  if (userData?.niveau) {
+    const niveauMap = {
+      'L1': 'N1', 'L2': 'N2', 'L3': 'N3',
+      'Master 1': 'N4', 'Master 2': 'N5',
+      'M1': 'N4', 'M2': 'N5',
+    };
+
+    const n = niveauMap[userData.niveau] || 'N1';
+
+    for (const sem of ['S1', 'S2']) {
+      try {
+        const filePath = `matieres/${n}/${sem}.txt`;
+        const content = fs.readFileSync(path.join(dataDir, filePath), 'utf-8');
+        knowledge += `\n--- ${filePath} ---\n${content}\n`;
+      } catch (e) {
+        // Fichier non trouvé
+      }
+    }
+  }
+
+  return knowledge;
+}
 
 // ============================================
 // Construire le prompt système selon le mode
 // ============================================
-function buildSystemPrompt(mode, userData) {
+export function buildSystemPrompt(mode, userData) {
+  const knowledge = loadKnowledge(userData);
+
   const basePrompt = `Tu es ESIGN AI, l'assistant officiel de l'École Supérieure Internationale de Génie Numérique (ESIGN), située à Sangmélima au Cameroun, faisant partie de l'UIECC (Université Inter-États Congo-Cameroun).
 
 L'école propose 3 filières :
@@ -15,23 +66,6 @@ L'école propose 3 filières :
 
 Niveaux : Licence 1, 2, 3 et Master 1, 2.
 Diplôme : Diplôme d'ingénieur de génie numérique, grade de Master.
-
-📚 PROGRAMME DU TRONC COMMUN - SEMESTRE 1 (15 matières) :
-1. Couche haute des systèmes informatiques
-2. Base de la logique mathématique
-3. Algorithme et programmation
-4. Philosophie et anthropologie de l'art
-5. Système d'exploitation
-6. Fondement du droit
-7. Mathématique discret
-8. Introduction aux structures de données
-9. Introduction au management des organisations
-10. Introduction à la communication des organisations
-11. Introduction à l'économie
-12. Création artistique numérique
-13. Introduction à la communication publicitaire
-14. Introduction aux systèmes informatiques
-15. Évolution des techniques artistiques
 
 🚫 RÈGLE D'OR PÉDAGOGIQUE :
 - Ne donne JAMAIS la réponse directement à l'étudiant.
@@ -49,7 +83,7 @@ Diplôme : Diplôme d'ingénieur de génie numérique, grade de Master.
 - Un groupe d'étudiants a créé une agence de community management pour les petites entreprises locales.
 - Certains étudiants importent des accessoires téléphones d'Alibaba et les revendent au marché de Sangmélima.
 - Un étudiant en ISN répare et formate des ordinateurs pour les particuliers et cybercafés.
-- Ghost et Dubuzz deux entrepreneurs de ESIGN ont lancé une formation sur l'importation des marchandises.
+- Ghost (Tagne Wambo) et Dubuzz (wamba roolf) deux entrepreneurs de ESIGN ont lancé une formation sur l'importation des marchandises.
 
 👨‍💻 À PROPOS DE L'APPLICATION :
 ESIGN AI a été développée par Empire Digital, une startup technologique fondée par un étudiant de ESIGN.
@@ -67,6 +101,9 @@ Si quelqu'un demande qui a créé cette application, réponds que c'est Empire D
 - Sois structuré, aéré et facile à lire, comme le ferait ChatGPT ou Claude.
 - Ne renvoie JAMAIS un seul bloc de texte sans mise en forme.
 
+📚 CONNAISSANCES SPÉCIFIQUES :
+${knowledge}
+
 Tu réponds en français. Tu es utile, précis, encourageant. Tu varies tes formulations.
 L'étudiant actuel est en ${userData?.filiere || 'non spécifié'}, niveau ${userData?.niveau || 'non spécifié'}.`;
 
@@ -79,7 +116,7 @@ Réponds à toutes les questions de l'étudiant. Si la question concerne ESIGN, 
 [MODE MENTOR - COACHING]
 Tu es un coach personnel pour cet étudiant. Ton rôle :
 - Évalue ses difficultés et ses forces
-- Crée un plan d'étude personnalisé en fonction des 15 matières du tronc commun
+- Crée un plan d'étude personnalisé en fonction des matières de son niveau
 - Donne des stratégies pour réussir les examens
 - Aide à l'organisation du travail entre les matières techniques et artistiques
 - Motive et encourage
@@ -88,7 +125,7 @@ Pose des questions pour comprendre ses besoins. Sois empathique mais exigeant.`,
 
     exam: `
 [MODE EXAMEN - SIMULATION]
-Tu es un examinateur d'ESIGN. Connais les 15 matières du tronc commun.
+Tu es un examinateur d'ESIGN. Tu connais les matières du niveau de l'étudiant.
 Ton rôle :
 - Génère des exercices adaptés au niveau et à la filière
 - Propose QCM, questions ouvertes, problèmes pratiques
@@ -120,10 +157,10 @@ Sois pratique, concret, inspirant.`,
 
     prof: `
 [MODE INFORMATIONS ÉCOLE]
-Tu es une base de connaissances sur ESIGN. Tu connais les 15 matières du Semestre 1, les 3 filières, etc.
+Tu es une base de connaissances sur ESIGN. Tu connais les matières, les filières, etc.
 Ton rôle :
 - Réponds aux questions sur les filières, programmes, matières
-- Détaille le contenu des 15 matières du tronc commun si demandé
+- Détaille le contenu des matières du niveau de l'étudiant si demandé
 - Informe sur les professeurs, l'administration
 - Explique le règlement intérieur, les modalités d'examen
 - Donne des infos pratiques sur le campus et Sangmélima
@@ -146,12 +183,10 @@ export async function sendToGemini(message, mode, userData, history = []) {
 
   const systemPrompt = buildSystemPrompt(mode, userData);
 
-  // Construire les messages au format OpenAI/Groq
   const messages = [
     { role: 'system', content: systemPrompt },
   ];
 
-  // Ajouter l'historique
   for (const msg of history) {
     messages.push({
       role: msg.role === 'user' ? 'user' : 'assistant',
@@ -159,7 +194,6 @@ export async function sendToGemini(message, mode, userData, history = []) {
     });
   }
 
-  // Ajouter le message actuel
   messages.push({ role: 'user', content: message });
 
   try {

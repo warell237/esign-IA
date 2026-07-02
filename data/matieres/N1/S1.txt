@@ -1,0 +1,61 @@
+NIVEAU 1 - SEMESTRE 1 (TRONC COMMUN) - 15 MATIÈRES
+
+1. COUCHE HAUTE DES SYSTÈMES INFORMATIQUES
+   - Introduction aux couches hautes (application, transport)
+   - Protocoles HTTP, FTP, SMTP, DNS
+
+2. BASE DE LA LOGIQUE MATHÉMATIQUE
+   - Logique propositionnelle et logique des prédicats
+   - Tables de vérité, tautologies, contradictions
+
+3. ALGORITHME ET PROGRAMMATION
+   - Bases de l'algorithmique (variables, conditions, boucles)
+   - Initiation au langage C
+
+4. PHILOSOPHIE ET ANTHROPOLOGIE DE L'ART
+   - Histoire de l'art et courants artistiques
+   - Philosophie de la création numérique
+
+5. SYSTÈME D'EXPLOITATION
+   - Rôle et fonctions d'un OS
+   - Gestion des processus, mémoire, fichiers
+
+6. FONDEMENT DU DROIT
+   - Introduction au droit civil et commercial
+   - Droit du numérique et propriété intellectuelle
+
+7. MATHÉMATIQUE DISCRET
+   - Théorie des ensembles, relations, fonctions
+   - Dénombrement, probabilités discrètes
+
+8. INTRODUCTION AUX STRUCTURES DE DONNÉES
+   - Tableaux, listes chaînées, piles, files
+   - Notions de complexité algorithmique
+
+9. INTRODUCTION AU MANAGEMENT DES ORGANISATIONS
+   - Théories du management
+   - Structure et fonctionnement des organisations
+
+10. INTRODUCTION À LA COMMUNICATION DES ORGANISATIONS
+    - Communication interne et externe
+    - Stratégies de communication digitale
+
+11. INTRODUCTION À L'ÉCONOMIE
+    - Microéconomie et macroéconomie
+    - Économie numérique et marchés digitaux
+
+12. CRÉATION ARTISTIQUE NUMÉRIQUE
+    - Initiation au design graphique
+    - Outils de création numérique (Photoshop, Illustrator)
+
+13. INTRODUCTION À LA COMMUNICATION PUBLICITAIRE
+    - Principes de la publicité
+    - Création de messages publicitaires
+
+14. INTRODUCTION AUX SYSTÈMES INFORMATIQUES
+    - Architecture des ordinateurs
+    - Systèmes de numération, codage de l'information
+
+15. ÉVOLUTION DES TECHNIQUES ARTISTIQUES
+    - Histoire des techniques artistiques
+    - Du traditionnel au numérique

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '../../lib/supabase';
+import { buildSystemPrompt } from '../../lib/gemini';
 
 export async function POST(request) {
   try {
@@ -46,7 +47,7 @@ export async function POST(request) {
       }, { status: 403 });
     }
 
-    // Construire le prompt système (même logique que gemini.js)
+    // Construire le prompt système (depuis gemini.js)
     const systemPrompt = buildSystemPrompt(mode || 'chat', userData);
     const messages = [{ role: 'system', content: systemPrompt }];
 
@@ -80,7 +81,6 @@ export async function POST(request) {
       throw new Error(err.error?.message || 'Erreur Groq');
     }
 
-    // Mettre à jour le quota
     if (subscription && subscription.plan === 'free') {
       await supabase.from('users').update({
         questions_remaining: subscription.questionsRemaining - 1,
@@ -88,7 +88,6 @@ export async function POST(request) {
       }).eq('id', userId);
     }
 
-    // Renvoyer le stream directement au client
     return new Response(groqResponse.body, {
       headers: {
         'Content-Type': 'text/event-stream',
@@ -101,20 +100,4 @@ export async function POST(request) {
     console.error('Erreur API Chat:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-}
-
-// Version simplifiée du prompt système (copiée de gemini.js)
-function buildSystemPrompt(mode, userData) {
-  const basePrompt = `Tu es ESIGN AI, l'assistant officiel de l'École Supérieure Internationale de Génie Numérique (ESIGN), située à Sangmélima au Cameroun, faisant partie de l'UIECC.
-
-L'école propose 3 filières : Ingénierie des Systèmes Numériques (ISN), Création et Design Numérique (CDN), Ingénierie Numérique Sociotechnique (INS).
-Niveaux : Licence 1, 2, 3 et Master 1, 2.
-
-📝 FORMAT DE RÉPONSE OBLIGATOIRE : Utilise TOUJOURS le format Markdown. Utilise **gras** pour les titres, des listes à puces, des blocs de code \`\`\` pour le code. Sois structuré et aéré.
-
-🚫 RÈGLE D'OR PÉDAGOGIQUE : Ne donne JAMAIS la réponse directement. Guide l'étudiant avec des indices et des questions.
-
-Tu réponds en français. L'étudiant est en ${userData?.filiere || 'non spécifié'}, niveau ${userData?.niveau || 'non spécifié'}.`;
-
-  return basePrompt;
 }
