@@ -1,3 +1,7 @@
+// ============================================
+// src/app/(dashboard)/layout.js — COMPLET
+// ============================================
+
 'use client';
 
 import { useState, useEffect, createContext, useContext } from 'react';
@@ -6,9 +10,11 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from '../providers';
 import ChatBackground from '../components/ChatBackground';
+import Onboarding from '../components/Onboarding';
+import PremiumPopup from '../components/PremiumPopup';
 import { supabase } from '../lib/supabase';
+import { v4 as uuidv4 } from 'uuid';
 
-// ✅ Context pour passer user et userData aux pages
 export const UserContext = createContext(null);
 export function useUser() { return useContext(UserContext); }
 
@@ -35,6 +41,8 @@ export default function DashboardLayout({ children }) {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showPremiumPopup, setShowPremiumPopup] = useState(false);
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -70,7 +78,20 @@ export default function DashboardLayout({ children }) {
       ]);
 
       if (!mounted) return;
-      if (userResult.data) setUserData(userResult.data);
+      if (userResult.data) {
+        setUserData(userResult.data);
+
+        // Onboarding première fois
+        const hasSeenOnboarding = localStorage.getItem('esign-onboarding-done');
+        if (!hasSeenOnboarding) {
+          setShowOnboarding(true);
+        }
+
+        // Popup Premium si quota épuisé
+        if (userResult.data.subscription_plan === 'free' && userResult.data.questions_remaining <= 5) {
+          setShowPremiumPopup(true);
+        }
+      }
       if (convsResult.data) setConversations(convsResult.data);
       setLoading(false);
     };
@@ -91,6 +112,12 @@ export default function DashboardLayout({ children }) {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.replace('/');
+  };
+
+  const newConversation = () => {
+    const newId = uuidv4();
+    router.push(`/chat/${newId}`);
+    if (isMobile) setSidebarOpen(false);
   };
 
   const sidebarWidth = isMobile ? 280 : sidebarCollapsed ? 0 : 280;
@@ -119,6 +146,26 @@ export default function DashboardLayout({ children }) {
           <div onClick={() => setSidebarOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)' }} />
         )}
 
+        {/* Onboarding */}
+        {showOnboarding && (
+          <Onboarding
+            isDark={isDark}
+            onClose={() => {
+              setShowOnboarding(false);
+              localStorage.setItem('esign-onboarding-done', 'true');
+            }}
+          />
+        )}
+
+        {/* Popup Premium */}
+        {showPremiumPopup && (
+          <PremiumPopup
+            isDark={isDark}
+            onClose={() => setShowPremiumPopup(false)}
+            onSubscribe={() => router.push('/subscription')}
+          />
+        )}
+
         {/* Modal déconnexion */}
         {showLogoutConfirm && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -128,11 +175,11 @@ export default function DashboardLayout({ children }) {
                 <polyline points="16 17 21 12 16 7"/>
                 <line x1="21" y1="12" x2="9" y2="12"/>
               </svg>
-              <h3 style={{ color: isDark ? 'white' : '#0a1035', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Se déconnecter ?</h3>
-              <p style={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)', fontSize: 13, marginBottom: 24 }}>Tu devras te reconnecter pour accéder à ESIGN AI.</p>
+              <h3 style={{ color: isDark ? 'white' : '#0a1035', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Se deconnecter ?</h3>
+              <p style={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)', fontSize: 13, marginBottom: 24 }}>Tu devras te reconnecter pour acceder a ESIGN AI.</p>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={() => setShowLogoutConfirm(false)} style={{ flex: 1, padding: '12px', borderRadius: 12, border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.15)', background: 'transparent', color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)', cursor: 'pointer', fontSize: 14, fontWeight: 500 }}>Annuler</button>
-                <button onClick={handleLogout} style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #ff4455, #cc2233)', color: 'white', cursor: 'pointer', fontSize: 14, fontWeight: 600, boxShadow: '0 4px 15px rgba(255,68,85,0.3)' }}>Déconnexion</button>
+                <button onClick={handleLogout} style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #ff4455, #cc2233)', color: 'white', cursor: 'pointer', fontSize: 14, fontWeight: 600, boxShadow: '0 4px 15px rgba(255,68,85,0.3)' }}>Deconnexion</button>
               </div>
             </div>
           </div>
@@ -150,7 +197,7 @@ export default function DashboardLayout({ children }) {
                     <div style={{ color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)', fontSize: 10.5, marginTop: 1 }}>Assistant Intelligent</div>
                   </div>
                 </Link>
-                <button onClick={() => { setCurrentConv(null); if (isMobile) setSidebarOpen(false); }} style={{ width: '100%', padding: '10px 0', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #4488ff, #3366cc)', color: 'white', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', boxShadow: '0 3px 12px rgba(68,136,255,0.25)', transition: 'transform 0.15s' }} onMouseEnter={e => { e.target.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; }}>
+                <button onClick={newConversation} style={{ width: '100%', padding: '10px 0', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #4488ff, #3366cc)', color: 'white', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', boxShadow: '0 3px 12px rgba(68,136,255,0.25)', transition: 'transform 0.15s' }} onMouseEnter={e => { e.target.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; }}>
                   + Nouvelle conversation
                 </button>
               </>
@@ -158,95 +205,60 @@ export default function DashboardLayout({ children }) {
             {!isMobile && (
               <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} style={{ marginTop: sidebarCollapsed ? 0 : 12, width: 32, height: 32, borderRadius: 6, border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, background: 'transparent', cursor: 'pointer', fontSize: 14, color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
                 {sidebarCollapsed ? (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                 ) : (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="15 18 9 12 15 6"/>
-                  </svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 )}
               </button>
             )}
           </div>
 
           {!(sidebarCollapsed && !isMobile) && (
-  <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 8px 0' }}>
-
-    {/* ========== MODES ========== */}
-    <div style={{ padding: '12px 14px 4px' }}>
-      <span style={{ color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Modes</span>
-    </div>
-    <div style={{ padding: '4px 8px' }}>
-      {modes.map(mode => {
-        const active = pathname === mode.path || pathname.startsWith(mode.path + '/');
-        return (
-          <Link key={mode.id} href={mode.path} onClick={() => isMobile && setSidebarOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 500, color: active ? '#4488ff' : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)'), background: active ? (isDark ? 'rgba(68,136,255,0.12)' : 'rgba(68,136,255,0.06)') : 'transparent', marginBottom: 1, transition: 'background 0.15s' }}>
-            <span style={{ fontSize: 15 }}>{mode.icon}</span>
-            <span>{mode.label}</span>
-            {active && <span style={{ marginLeft: 'auto', width: 5, height: 5, borderRadius: '50%', background: '#4488ff', boxShadow: '0 0 6px rgba(68,136,255,0.5)' }} />}
-          </Link>
-        );
-      })}
-    </div>
-
-    {/* Séparateur */}
-    <div style={{ margin: '8px 14px', height: '1px', background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }} />
-
-    {/* ========== CONVERSATIONS ========== */}
-    <div style={{ padding: '12px 14px 4px' }}>
-      <span style={{ color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Conversations</span>
-    </div>
-    <div style={{ padding: '4px 8px' }}>
-      {conversations.length === 0 ? (
-        <div style={{ padding: '16px 12px', textAlign: 'center', color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)', fontSize: 12 }}>Aucune conversation</div>
-      ) : (
-        conversations.map(conv => (
-          <button key={conv.id} onClick={() => { setCurrentConv(conv); if (isMobile) setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 8, border: 'none', background: currentConv?.id === conv.id ? (isDark ? 'rgba(68,136,255,0.12)' : 'rgba(68,136,255,0.06)') : 'transparent', color: currentConv?.id === conv.id ? '#4488ff' : (isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'), cursor: 'pointer', fontSize: 12.5, marginBottom: 1, transition: 'background 0.15s' }}>
-            <div style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{conv.title || 'Nouvelle conversation'}</div>
-            <div style={{ fontSize: 10.5, color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)' }}>{formatDate(conv.updated_at || conv.created_at)}</div>
-          </button>
-        ))
-      )}
-    </div>
-  </div>
-)}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 8px 0' }}>
+              <div style={{ padding: '12px 14px 4px' }}><span style={{ color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Modes</span></div>
+              <div style={{ padding: '4px 8px' }}>
+                {modes.map(mode => {
+                  const active = pathname === mode.path || pathname.startsWith(mode.path + '/');
+                  return (
+                    <Link key={mode.id} href={mode.path} onClick={() => isMobile && setSidebarOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 500, color: active ? '#4488ff' : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)'), background: active ? (isDark ? 'rgba(68,136,255,0.12)' : 'rgba(68,136,255,0.06)') : 'transparent', marginBottom: 1, transition: 'background 0.15s' }}>
+                      <span style={{ fontSize: 15 }}>{mode.icon}</span><span>{mode.label}</span>
+                      {active && <span style={{ marginLeft: 'auto', width: 5, height: 5, borderRadius: '50%', background: '#4488ff', boxShadow: '0 0 6px rgba(68,136,255,0.5)' }} />}
+                    </Link>
+                  );
+                })}
+              </div>
+              <div style={{ margin: '8px 14px', height: '1px', background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }} />
+              <div style={{ padding: '12px 14px 4px' }}><span style={{ color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Conversations</span></div>
+              <div style={{ padding: '4px 8px' }}>
+                {conversations.length === 0 ? (
+                  <div style={{ padding: '16px 12px', textAlign: 'center', color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)', fontSize: 12 }}>Aucune conversation</div>
+                ) : (
+                  conversations.map(conv => (
+                    <button key={conv.id} onClick={() => { router.push(`/chat/${conv.id}`); if (isMobile) setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 8, border: 'none', background: currentConv?.id === conv.id ? (isDark ? 'rgba(68,136,255,0.12)' : 'rgba(68,136,255,0.06)') : 'transparent', color: currentConv?.id === conv.id ? '#4488ff' : (isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'), cursor: 'pointer', fontSize: 12.5, marginBottom: 1, transition: 'background 0.15s' }}>
+                      <div style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{conv.title || 'Nouvelle conversation'}</div>
+                      <div style={{ fontSize: 10.5, color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)' }}>{formatDate(conv.updated_at || conv.created_at)}</div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
 
           {!(sidebarCollapsed && !isMobile) && (
             <div style={{ flexShrink: 0, padding: '10px 14px', borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Link href="/profile" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flex: 1, minWidth: 0 }} onClick={() => isMobile && setSidebarOpen(false)}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #4488ff, #3366cc)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
-                  {user?.email?.charAt(0)?.toUpperCase() || 'E'}
-                </div>
-                <span style={{ color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)', fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {userData?.first_name || user?.email?.split('@')[0] || 'Utilisateur'}
-                </span>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #4488ff, #3366cc)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{user?.email?.charAt(0)?.toUpperCase() || 'E'}</div>
+                <span style={{ color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)', fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userData?.first_name || user?.email?.split('@')[0] || 'Utilisateur'}</span>
               </Link>
               <button onClick={() => setShowLogoutConfirm(true)} style={{ padding: '6px 10px', borderRadius: 7, flexShrink: 0, border: '1px solid rgba(255,68,85,0.3)', background: 'transparent', cursor: 'pointer', fontSize: 11, color: '#ff4455', fontWeight: 500, transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 4 }} onMouseEnter={e => { e.target.style.background = 'rgba(255,68,85,0.1)'; }} onMouseLeave={e => { e.target.style.background = 'transparent'; }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
-                  <polyline points="16 17 21 12 16 7"/>
-                  <line x1="21" y1="12" x2="9" y2="12"/>
-                </svg>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 Quitter
               </button>
               <button onClick={toggleTheme} style={{ width: 30, height: 30, borderRadius: 7, flexShrink: 0, marginLeft: 6, border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
                 {isDark ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffb347" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="5"/>
-                    <line x1="12" y1="1" x2="12" y2="3"/>
-                    <line x1="12" y1="21" x2="12" y2="23"/>
-                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                    <line x1="1" y1="12" x2="3" y2="12"/>
-                    <line x1="21" y1="12" x2="23" y2="12"/>
-                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-                  </svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffb347" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
                 ) : (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3366cc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
-                  </svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3366cc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
                 )}
               </button>
             </div>
@@ -264,17 +276,9 @@ export default function DashboardLayout({ children }) {
             <div style={{ flex: 1 }} />
             <button onClick={toggleTheme} style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, background: 'transparent', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {isDark ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffb347" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="5"/>
-                  <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                  <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
-                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-                </svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffb347" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
               ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3366cc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
-                </svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3366cc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
               )}
             </button>
           </div>

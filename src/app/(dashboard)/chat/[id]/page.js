@@ -1,14 +1,21 @@
+// ============================================
+// src/app/(dashboard)/chat/[id]/page.js
+// ============================================
+
 'use client';
 
-import ChatInterface from '../../components/ChatInterface';
-import SubscriptionGuard from '../../components/SubscriptionGuard';
-import { useTheme } from '../../providers';
-import { useUser } from '../layout';
+import { useParams } from 'next/navigation';
+import ChatInterface from '../../../components/ChatInterface';
+import SubscriptionGuard from '../../../components/SubscriptionGuard';
+import { useTheme } from '../../../providers';
+import { useUser } from '../../layout';
 
 export default function ChatPage() {
+  const params = useParams();
   const { theme } = useTheme();
-  const { user, userData } = useUser(); // ✅ via Context
+  const { user, userData } = useUser();
   const isDark = theme === 'dark';
+  const conversationId = params.id;
 
   const chatSuggestions = [
     'Explique les pointeurs en C',
@@ -23,6 +30,7 @@ export default function ChatPage() {
         userId={user?.id}
         mode="chat"
         isDark={isDark}
+        conversationId={conversationId}
         placeholder="Posez votre question..."
         suggestions={chatSuggestions}
       />
