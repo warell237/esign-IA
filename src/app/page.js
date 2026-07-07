@@ -363,7 +363,29 @@ export default function HomePage() {
         <p style={{ color: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(10, 16, 53, 0.2)', fontSize: isMobile ? '9px' : '11px', letterSpacing: '1px', margin: 0, whiteSpace: 'nowrap' }}>ESIGN - UIECC - Sangmelima - Cameroun-Congo</p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 2 }}>
           <p style={{ color: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(10, 16, 53, 0.12)', fontSize: isMobile ? '7px' : '9px', margin: 0 }}>Realise par Empire Digital</p>
-          <Link href="/about" style={{ color: '#4488ff', fontSize: isMobile ? '7px' : '9px', textDecoration: 'underline' }}>A propos</Link>
+          // Dans le footer de page.js, remplace le lien A propos par :
+
+<Link href="/about" style={{
+  color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
+  fontSize: isMobile ? '8px' : '10px',
+  textDecoration: 'none',
+  padding: '3px 10px',
+  borderRadius: 6,
+  border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)',
+  transition: 'all 0.2s',
+  display: 'inline-block',
+}}
+onMouseEnter={(e) => {
+  e.target.style.color = '#4488ff';
+  e.target.style.borderColor = '#4488ff';
+}}
+onMouseLeave={(e) => {
+  e.target.style.color = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
+  e.target.style.borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+}}
+>
+  A propos
+</Link>
         </div>
       </div>
 
