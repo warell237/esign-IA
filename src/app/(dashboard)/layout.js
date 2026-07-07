@@ -190,13 +190,13 @@ export default function DashboardLayout({ children }) {
           <div style={{ flexShrink: 0, padding: sidebarCollapsed && !isMobile ? '18px 8px 10px' : '18px 14px 10px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, display: sidebarCollapsed && !isMobile ? 'flex' : 'block', justifyContent: 'center' }}>
             {!(sidebarCollapsed && !isMobile) && (
               <>
-                <Link href="/chat" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, textDecoration: 'none' }} onClick={() => isMobile && setSidebarOpen(false)}>
+               <button onClick={() => { newConversation(); if (isMobile) setSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                   <img src="/icon-192.png" alt="ESIGN" style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'contain', flexShrink: 0 }} />
                   <div>
                     <div style={{ color: isDark ? 'white' : '#0a1035', fontSize: 16, fontWeight: 700, letterSpacing: 1, lineHeight: 1 }}>ESIGN AI</div>
                     <div style={{ color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)', fontSize: 10.5, marginTop: 1 }}>Assistant Intelligent</div>
                   </div>
-                </Link>
+                </button>
                 <button onClick={newConversation} style={{ width: '100%', padding: '10px 0', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #4488ff, #3366cc)', color: 'white', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', boxShadow: '0 3px 12px rgba(68,136,255,0.25)', transition: 'transform 0.15s' }} onMouseEnter={e => { e.target.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; }}>
                   + Nouvelle conversation
                 </button>
@@ -269,10 +269,10 @@ export default function DashboardLayout({ children }) {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, height: '100%', overflow: 'hidden' }}>
           <div style={{ position: 'fixed', top: 0, left: isMobile ? 0 : sidebarCollapsed ? 0 : 280, right: 0, height: HEADER_HEIGHT, zIndex: 40, padding: '0 14px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, background: isDark ? 'rgba(8,8,32,0.95)' : 'rgba(255,255,255,0.95)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', gap: 10, transition: 'left 0.25s ease', transform: 'translateZ(0)', WebkitTransform: 'translateZ(0)' }}>
             <button onClick={() => { if (isMobile) { setSidebarOpen(true); } else { setSidebarCollapsed(!sidebarCollapsed); } }} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: isDark ? 'white' : '#0a1035', padding: 0, lineHeight: 1 }}>☰</button>
-            <Link href="/chat" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+            <button onClick={() => { newConversation(); if (isMobile) setSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'none' }}>
               <img src="/icon-192.png" alt="ESIGN" style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'contain', flexShrink: 0 }} />
               <div style={{ color: isDark ? 'white' : '#0a1035', fontSize: 14, fontWeight: 700, letterSpacing: 1 }}>ESIGN AI</div>
-            </Link>
+            </button>
             <div style={{ flex: 1 }} />
             <button onClick={toggleTheme} style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, background: 'transparent', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {isDark ? (

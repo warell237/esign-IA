@@ -30,8 +30,12 @@ export default function Header({ user, onLogout }) {
       <div className="flex items-center justify-between h-full px-4 max-w-screen-2xl mx-auto">
         {/* Partie gauche : Logo + Titre */}
         <div className="flex items-center gap-3">
-          <Link href="/chat" className="flex items-center gap-3">
+          <button 
+           onClick={() => { newConversation(); if (isMobile) setSidebarOpen(false); }} 
+           
+           style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
             {/* Logo ESIGN - Remplace par ton vrai logo */}
+            </button>
             <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center logo-glow">
               <Image
                 src="/logo-esign.png"
@@ -51,7 +55,7 @@ export default function Header({ user, onLogout }) {
                 Assistant Intelligent
               </p>
             </div>
-          </Link>
+          
         </div>
 
         {/* Partie droite : Navigation, Thème, Profil */}
