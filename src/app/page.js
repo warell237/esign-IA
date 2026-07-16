@@ -69,8 +69,20 @@ export default function HomePage() {
     <main style={{ width: '100%', height: '100dvh', overflow: 'hidden', background: isDark ? '#000010' : '#f2f5ff', position: 'relative', fontFamily: 'Arial, sans-serif', transition: 'background 0.4s ease' }}>
       <SpaceBackground />
 
-      {/* Bouton theme */}
-      <div style={{ position: 'fixed', top: isMobile ? '12px' : '20px', right: isMobile ? '12px' : '20px', zIndex: 100 }}>
+      {/* Header : A propos + Theme */}
+      <div style={{ position: 'fixed', top: isMobile ? '12px' : '20px', left: isMobile ? '12px' : '20px', right: isMobile ? '12px' : '20px', zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Link href="/about" style={{
+          color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)',
+          fontSize: 13, textDecoration: 'none', padding: '5px 12px',
+          borderRadius: 8, border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.08)',
+          transition: 'all 0.2s',
+        }}
+        onMouseEnter={(e) => { e.target.style.color = '#4488ff'; e.target.style.borderColor = '#4488ff'; }}
+        onMouseLeave={(e) => { e.target.style.color = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'; e.target.style.borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'; }}
+        >
+          A propos
+        </Link>
+        
         <button onClick={toggleTheme} style={{ width: isMobile ? '38px' : '44px', height: isMobile ? '38px' : '44px', borderRadius: '10px', border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)', background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', backdropFilter: 'blur(20px)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease' }} aria-label={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}>
           {isDark ? (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffb347" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -102,7 +114,7 @@ export default function HomePage() {
             </div>
           ) : (
             <p style={{ color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)', fontSize: 13, margin: '0 0 12px 0', lineHeight: 1.5 }}>
-              Ajoutez cette app a votre ecran d&apos;accueil pour un acces rapide comme une vraie application.
+              Ajoutez cette app a votre ecran d&apos;accueil pour un acces rapide.
             </p>
           )}
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -129,21 +141,13 @@ export default function HomePage() {
 
       {/* Boutons */}
       <div style={{ position: 'absolute', bottom: bottomGap, left: '50%', transform: 'translateX(-50%)', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isMobile ? '10px' : '14px', width: '90%', maxWidth: btnMaxWidth, pointerEvents: 'auto' }}>
-        <Link href="/register" style={{ display: 'block', width: '100%', padding: btnPadding, textAlign: 'center', color: 'white', fontWeight: '600', fontSize: btnFontSize, borderRadius: '14px', textDecoration: 'none', background: 'linear-gradient(135deg, #4488ff, #3366cc)', boxShadow: '0 6px 25px rgba(68, 136, 255, 0.4)', transition: 'all 0.3s ease', letterSpacing: '0.5px' }}>Commencer gratuitement</Link>
-        <Link href="/login" style={{ display: 'block', width: '100%', padding: btnPadding, textAlign: 'center', color: isDark ? 'rgba(255, 255, 255, 0.8)' : 'rgba(10, 16, 53, 0.8)', fontWeight: '500', fontSize: btnFontSize, borderRadius: '14px', textDecoration: 'none', border: isDark ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(10, 16, 53, 0.2)', transition: 'all 0.3s ease', letterSpacing: '0.5px' }}>J&apos;ai deja un compte</Link>
+        <Link href="/register" style={{ display: 'block', width: '100%', padding: btnPadding, textAlign: 'center', color: 'white', fontWeight: '600', fontSize: btnFontSize, borderRadius: '14px', textDecoration: 'none', background: 'linear-gradient(135deg, #4488ff, #3366cc)', boxShadow: '0 6px 25px rgba(68, 136, 255, 0.4)' }}>Commencer gratuitement</Link>
+        <Link href="/login" style={{ display: 'block', width: '100%', padding: btnPadding, textAlign: 'center', color: isDark ? 'rgba(255, 255, 255, 0.8)' : 'rgba(10, 16, 53, 0.8)', fontWeight: '500', fontSize: btnFontSize, borderRadius: '14px', textDecoration: 'none', border: isDark ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(10, 16, 53, 0.2)' }}>J&apos;ai deja un compte</Link>
         <p style={{ color: isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(10, 16, 53, 0.4)', fontSize: isMobile ? '10px' : '12px', margin: `${isMobile ? '6px' : '10px'} 0 0 0`, textAlign: 'center' }}>{isMobile ? '50 questions/jour - Premium 1000 FCFA/mois' : '50 questions gratuites par jour - Premium des 1 000 FCFA/mois'}</p>
       </div>
 
-      {/* Footer */}
-      <div style={{ position: 'absolute', bottom: isMobile ? '6px' : '10px', left: '50%', transform: 'translateX(-50%)', zIndex: 10, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <p style={{ color: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(10, 16, 53, 0.2)', fontSize: isMobile ? '9px' : '11px', letterSpacing: '1px', margin: 0, whiteSpace: 'nowrap' }}>ESIGN - UIECC - Sangmelima</p>
-          <span style={{ color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', fontSize: 10 }}>|</span>
-          <Link href="/about" style={{ color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)', fontSize: isMobile ? '8px' : '10px', textDecoration: 'none', padding: '2px 8px', borderRadius: 6, border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)', transition: 'all 0.2s' }}
-            onMouseEnter={(e) => { e.target.style.color = '#4488ff'; e.target.style.borderColor = '#4488ff'; }}
-            onMouseLeave={(e) => { e.target.style.color = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'; e.target.style.borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'; }}
-          >A propos</Link>
-        </div>
+      {/* Footer minimal */}
+      <div style={{ position: 'absolute', bottom: isMobile ? '6px' : '10px', left: '50%', transform: 'translateX(-50%)', zIndex: 10, textAlign: 'center' }}>
         <p style={{ color: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(10, 16, 53, 0.12)', fontSize: isMobile ? '7px' : '9px', margin: 0 }}>Realise par Empire Digital</p>
       </div>
 

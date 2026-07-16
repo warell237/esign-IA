@@ -1,27 +1,60 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../../providers';
 import { useUser } from '../layout';
+import { supabase } from '../../lib/supabase';
 
 export default function ProfilePage() {
   const router = useRouter();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const { user, userData } = useUser();
+  const { user, userData: initialUserData } = useUser();
 
+  const [userData, setUserData] = useState(null);
   const [editing, setEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    firstName: userData?.firstName || '',
-    lastName: userData?.lastName || '',
-    filiere: userData?.filiere || '',
-    niveau: userData?.niveau || '',
-    phone: userData?.phone || '',
-  });
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({});
+
+  // Charger les données fraîches depuis Supabase
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setUserData(data);
+          setFormData({
+            first_name: data.first_name || '',
+            last_name: data.last_name || '',
+            filiere: data.filiere || '',
+            niveau: data.niveau || '',
+            phone: data.phone || '',
+          });
+        }
+      });
+  }, [user?.id]);
 
   const handleSave = async () => {
+    if (!user?.id) return;
+    setSaving(true);
+    await supabase
+      .from('users')
+      .update({
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        filiere: formData.filiere,
+        niveau: formData.niveau,
+        phone: formData.phone,
+      })
+      .eq('id', user.id);
+    setUserData({ ...userData, ...formData });
     setEditing(false);
+    setSaving(false);
   };
 
   const c = {
@@ -39,12 +72,24 @@ export default function ProfilePage() {
   };
 
   const fields = [
-    { label: 'Prenom', key: 'firstName' },
-    { label: 'Nom', key: 'lastName' },
+    { label: 'Prenom', key: 'first_name' },
+    { label: 'Nom', key: 'last_name' },
     { label: 'Filiere', key: 'filiere' },
     { label: 'Niveau', key: 'niveau' },
     { label: 'Telephone', key: 'phone' },
   ];
+
+  if (!userData) {
+    return (
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: c.bg }}>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {[0, 1, 2].map(i => (
+            <span key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: '#4488ff', animation: `bounce 1.4s infinite ${i * 0.2}s` }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -52,7 +97,6 @@ export default function ProfilePage() {
       fontFamily: 'Arial, sans-serif',
     }}>
       
-      {/* Titre */}
       <div style={{ maxWidth: 600, margin: '0 auto' }}>
         <h1 style={{ color: c.text, fontSize: 22, fontWeight: 700, marginBottom: 24 }}>
           Mon Profil
@@ -65,7 +109,6 @@ export default function ProfilePage() {
           border: `1px solid ${c.border}`,
           marginBottom: 16,
         }}>
-          {/* Avatar + Nom */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
             <div style={{
               width: 56, height: 56, borderRadius: '50%',
@@ -73,17 +116,16 @@ export default function ProfilePage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: 'white', fontSize: 20, fontWeight: 700, flexShrink: 0,
             }}>
-              {user?.displayName?.charAt(0)?.toUpperCase() || 'E'}
+              {user?.email?.charAt(0)?.toUpperCase() || (userData?.first_name?.charAt(0)?.toUpperCase()) || 'E'}
             </div>
             <div>
               <h2 style={{ color: c.text, fontSize: 17, fontWeight: 600, margin: '0 0 2px' }}>
-                {user?.displayName || 'Etudiant ESIGN'}
+                {userData?.first_name ? `${userData.first_name} ${userData.last_name || ''}` : 'Etudiant ESIGN'}
               </h2>
-              <span style={{ color: c.mute, fontSize: 13 }}>{user?.email}</span>
+              <span style={{ color: c.mute, fontSize: 13 }}>{user?.email || userData?.email}</span>
             </div>
           </div>
 
-          {/* Champs */}
           <div style={{ marginBottom: 20 }}>
             {fields.map(field => (
               <div
@@ -98,7 +140,7 @@ export default function ProfilePage() {
                 </span>
                 {editing ? (
                   <input
-                    value={formData[field.key]}
+                    value={formData[field.key] || ''}
                     onChange={e => setFormData({ ...formData, [field.key]: e.target.value })}
                     style={{
                       width: 180, padding: '8px 12px', borderRadius: 8,
@@ -111,26 +153,26 @@ export default function ProfilePage() {
                   />
                 ) : (
                   <span style={{ color: c.text, fontSize: 13, fontWeight: 500 }}>
-                    {field.value || 'Non renseigne'}
+                    {userData?.[field.key] || 'Non renseigne'}
                   </span>
                 )}
               </div>
             ))}
           </div>
 
-          {/* Boutons */}
           <div style={{ display: 'flex', gap: 10 }}>
             {editing ? (
               <>
                 <button
                   onClick={handleSave}
+                  disabled={saving}
                   style={{
                     flex: 1, padding: '12px', borderRadius: 10, border: 'none',
-                    background: 'linear-gradient(135deg, #4488ff, #3366cc)',
-                    color: 'white', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                    background: saving ? 'rgba(68,136,255,0.4)' : 'linear-gradient(135deg, #4488ff, #3366cc)',
+                    color: 'white', fontWeight: 600, fontSize: 13, cursor: saving ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  Enregistrer
+                  {saving ? 'Enregistrement...' : 'Enregistrer'}
                 </button>
                 <button
                   onClick={() => setEditing(false)}
@@ -158,7 +200,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Carte Abonnement */}
+        {/* Abonnement */}
         <div style={{
           padding: '24px', borderRadius: 16,
           background: c.cardBg, backdropFilter: 'blur(30px)',
@@ -171,33 +213,33 @@ export default function ProfilePage() {
           
           <div style={{
             padding: 16, borderRadius: 12,
-            background: userData?.subscription?.plan === 'premium'
+            background: userData?.subscription_plan === 'premium'
               ? (isDark ? 'rgba(0,204,136,0.08)' : 'rgba(0,204,136,0.04)')
               : (isDark ? 'rgba(68,136,255,0.08)' : 'rgba(68,136,255,0.04)'),
-            border: `1px solid ${userData?.subscription?.plan === 'premium' ? 'rgba(0,204,136,0.2)' : 'rgba(68,136,255,0.2)'}`,
+            border: `1px solid ${userData?.subscription_plan === 'premium' ? 'rgba(0,204,136,0.2)' : 'rgba(68,136,255,0.2)'}`,
             marginBottom: 16,
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <span style={{
-                  color: userData?.subscription?.plan === 'premium' ? c.success : c.accent,
+                  color: userData?.subscription_plan === 'premium' ? c.success : c.accent,
                   fontSize: 15, fontWeight: 700,
                 }}>
-                  {userData?.subscription?.plan === 'premium' ? 'Premium' : 'Gratuit'}
+                  {userData?.subscription_plan === 'premium' ? 'Premium' : 'Gratuit'}
                 </span>
                 <span style={{ display: 'block', color: c.mute, fontSize: 12, marginTop: 3 }}>
-                  {userData?.subscription?.plan === 'premium'
-                    ? `Expire le ${new Date(userData?.subscription?.endDate).toLocaleDateString('fr')}`
-                    : `${userData?.subscription?.questionsRemaining || 50} questions restantes aujourd'hui`}
+                  {userData?.subscription_plan === 'premium'
+                    ? `Expire le ${new Date(userData?.subscription_end).toLocaleDateString('fr')}`
+                    : `${userData?.questions_remaining ?? 50} questions restantes aujourd'hui`}
                 </span>
               </div>
               <div style={{
                 padding: '6px 14px', borderRadius: 6,
-                background: userData?.subscription?.plan === 'premium' ? 'rgba(0,204,136,0.15)' : 'rgba(68,136,255,0.15)',
-                color: userData?.subscription?.plan === 'premium' ? c.success : c.accent,
+                background: userData?.subscription_plan === 'premium' ? 'rgba(0,204,136,0.15)' : 'rgba(68,136,255,0.15)',
+                color: userData?.subscription_plan === 'premium' ? c.success : c.accent,
                 fontSize: 12, fontWeight: 600,
               }}>
-                {userData?.subscription?.plan === 'premium' ? 'Actif' : '50 questions/jour'}
+                {userData?.subscription_plan === 'premium' ? 'Illimite' : `${userData?.questions_remaining ?? 50}/jour`}
               </div>
             </div>
           </div>
@@ -210,7 +252,7 @@ export default function ProfilePage() {
               color: 'white', fontWeight: 600, fontSize: 13, cursor: 'pointer',
             }}
           >
-            {userData?.subscription?.plan === 'premium' ? 'Gerer mon abonnement' : 'Passer Premium'}
+            {userData?.subscription_plan === 'premium' ? 'Gerer mon abonnement' : 'Passer Premium'}
           </button>
         </div>
 
@@ -221,10 +263,7 @@ export default function ProfilePage() {
             width: '100%', padding: '14px', borderRadius: 12,
             border: `1px solid rgba(255,68,85,0.3)`, background: 'transparent',
             color: c.error, fontWeight: 500, fontSize: 13, cursor: 'pointer',
-            transition: 'all 0.2s',
           }}
-          onMouseEnter={e => e.target.style.background = 'rgba(255,68,85,0.05)'}
-          onMouseLeave={e => e.target.style.background = 'transparent'}
         >
           Se deconnecter
         </button>

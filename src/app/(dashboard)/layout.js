@@ -59,14 +59,23 @@ export default function DashboardLayout({ children }) {
   useEffect(() => {
     let mounted = true;
 
-    const init = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!mounted) return;
+   const init = async () => {
+  let { data } = await supabase.auth.getSession();
+  
+  // Si pas de session, essayer de la rafraîchir
+  if (!data.session) {
+    const { data: refreshData } = await supabase.auth.refreshSession();
+    if (refreshData?.session) {
+      data = refreshData;
+    }
+  }
 
-      if (!data.session) {
-        router.replace('/login');
-        return;
-      }
+  if (!mounted) return;
+
+  if (!data.session) {
+    router.replace('/login');
+    return;
+  }
 
       const uid = data.session.user.id;
       setUser(data.session.user);

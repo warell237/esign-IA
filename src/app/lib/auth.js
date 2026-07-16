@@ -1,13 +1,11 @@
-// ============================================
-// src/app/lib/auth.js 
-// ============================================
-
 import { supabase } from './supabase';
 
 // ============================================
 // Inscription email/mot de passe
 // ============================================
 export async function registerUser(email, password, userData) {
+
+  // 1. Créer le compte dans Auth
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -23,53 +21,90 @@ export async function registerUser(email, password, userData) {
     },
   });
 
-  if (error) return { success: false, error: error.message };
-
-  // Email non confirmé → demander OTP
-  if (data.user && !data.user.confirmed_at) {
-    return { success: true, emailConfirmation: true, user: data.user };
+  if (error) {
+    if (error.message.includes('rate limit') || error.message.includes('exceeded')) {
+      return { success: false, error: 'Trop de tentatives. Attends 1 minute et reessaie.' };
+    }
+    if (error.message.includes('already registered')) {
+      return { success: false, error: 'Cet email est deja utilise. Connectez-vous.' };
+    }
+    return { success: false, error: error.message };
   }
 
-  // Email déjà confirmé → insérer dans users
-  const { error: dbError } = await supabase.from('users').insert({
-    id: data.user.id, email, first_name: userData.firstName,
-    last_name: userData.lastName, filiere: userData.filiere || '',
-    niveau: userData.niveau || '', matricule: userData.matricule || '',
-    phone: userData.phone || '', subscription_plan: 'free',
-    questions_remaining: 10, questions_used: 0, theme: 'dark',
-    points: 0, level: 1, created_at: new Date().toISOString(),
+  if (!data.user) return { success: false, error: 'Erreur lors de la creation du compte' };
+
+  // 2. ✅ Connecter avec signInWithPassword pour établir la session
+  const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+    email,
+    password,
   });
 
-  if (dbError) return { success: false, error: dbError.message };
-  return { success: true, user: data.user };
+  // Si login échoue (email non confirmé), on continue quand même
+  const sessionUser = loginData?.user || data.user;
+
+  // 3. ✅ Insérer dans la table users avec upsert (évite les doublons)
+  const { error: dbError } = await supabase.from('users').upsert({
+    id: data.user.id,
+    email,
+    first_name: userData.firstName,
+    last_name: userData.lastName,
+    filiere: userData.filiere || '',
+    niveau: userData.niveau || '',
+    matricule: userData.matricule || '',
+    phone: userData.phone || '',
+    subscription_plan: 'free',
+    questions_remaining: 10,
+    questions_used: 0,
+    theme: 'dark',
+    points: 0,
+    level: 1,
+    created_at: new Date().toISOString(),
+  }, { onConflict: 'id' });
+
+  if (dbError) {
+    console.error('DB insert error:', dbError);
+    // On continue même si l'insert échoue (user déjà existant)
+  }
+
+  // 4. ✅ Si session établie → redirection directe
+  if (loginData?.session) {
+    return { success: true, user: sessionUser };
+  }
+
+  // 5. Si pas de session (email non confirmé) → signaler
+  return { success: true, user: data.user, needsConfirmation: false };
 }
 
 // ============================================
-// Vérification OTP (8 chiffres)
+// Connexion email/mot de passe
 // ============================================
-export async function verifyOTP(email, token) {
-  const { data, error } = await supabase.auth.verifyOtp({
-    email,
-    token,
-    type: 'signup',
-  });
+export async function loginUser(email, password) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    if (error.message.includes('Invalid login') || error.message.includes('invalid_credentials')) {
+      return { success: false, error: 'Email ou mot de passe incorrect.' };
+    }
+    if (error.message.includes('Email not confirmed')) {
+      return { success: false, error: 'Email non confirmé. Vérifiez votre boîte mail.' };
+    }
+    return { success: false, error: error.message };
+  }
 
-  if (error) return { success: false, error: error.message };
+  // ✅ Vérifier si l'utilisateur existe dans la table users, sinon créer
+  const { data: existing } = await supabase
+    .from('users')
+    .select('id')
+    .eq('id', data.user.id)
+    .maybeSingle();
 
-  const user = data.user;
-  if (user) {
-    // Récupérer les métadonnées sauvegardées lors du signUp
-    const meta = user.user_metadata || {};
-
-    // Insérer dans la table users
-    const { error: dbError } = await supabase.from('users').insert({
-      id: user.id, email: user.email,
-      first_name: meta.first_name || '',
-      last_name: meta.last_name || '',
-      filiere: meta.filiere || '',
-      niveau: meta.niveau || '',
-      matricule: meta.matricule || '',
-      phone: meta.phone || '',
+  if (!existing) {
+    await supabase.from('users').insert({
+      id: data.user.id,
+      email: data.user.email,
+      first_name: data.user.user_metadata?.first_name || '',
+      last_name: data.user.user_metadata?.last_name || '',
+      filiere: data.user.user_metadata?.filiere || '',
+      niveau: data.user.user_metadata?.niveau || '',
       subscription_plan: 'free',
       questions_remaining: 10,
       questions_used: 0,
@@ -78,55 +113,9 @@ export async function verifyOTP(email, token) {
       level: 1,
       created_at: new Date().toISOString(),
     });
-
-    // Si l'utilisateur existe déjà, on ignore l'erreur
-    if (dbError && !dbError.message.includes('duplicate')) {
-      return { success: false, error: dbError.message };
-    }
   }
 
   return { success: true, user: data.user };
-}
-
-// ============================================
-// Connexion email/mot de passe
-// ============================================
-export async function loginUser(email, password) {
-  const maxAttempts = 3;
-  const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      console.time(`loginUser-attempt-${attempt}`);
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      console.timeEnd(`loginUser-attempt-${attempt}`);
-
-      if (error) {
-        // Si erreur réseau/transitoire, réessayer
-        const msg = (error && error.message) || '';
-        if (attempt < maxAttempts && (msg.includes('timeout') || msg.includes('Network') || msg.includes('connect'))) {
-          await sleep(300 * attempt);
-          continue;
-        }
-        return { success: false, error: msg };
-      }
-
-      return { success: true, user: data.user };
-    } catch (err) {
-      console.error(`loginUser - attempt ${attempt} error:`, err?.message || err);
-      const causeCode = err?.cause?.code || '';
-      const msg = err?.message || '';
-      if (attempt < maxAttempts) {
-        // backoff
-        await sleep(400 * attempt);
-        continue;
-      }
-      if (causeCode === 'UND_ERR_CONNECT_TIMEOUT' || msg.includes('Connect Timeout')) {
-        return { success: false, error: "Timeout réseau: impossible de joindre Supabase. Vérifiez votre connexion internet, VPN ou firewall." };
-      }
-      return { success: false, error: msg };
-    }
-  }
 }
 
 // ============================================
@@ -142,7 +131,6 @@ export async function loginWithGoogle() {
   });
 
   if (error) return { success: false, error: error.message };
-  // Supabase peut retourner une URL d'authentification (data.url) — renvoyer pour que le client puisse rediriger.
   if (data?.url) return { success: true, url: data.url };
   return { success: true };
 }

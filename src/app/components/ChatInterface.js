@@ -200,20 +200,19 @@ export default function ChatInterface({
   }, [messages]);
 
   useEffect(() => {
-  if (!conversationId || !userId) return;
-
-  supabase
-    .from('conversations')
-    .select('messages')
-    .eq('id', conversationId)
-    .eq('user_id', userId)
-    .single()
-    .then(({ data }) => {
-      if (data?.messages && Array.isArray(data.messages)) {
-        setMessages(data.messages);
-      }
-    });
-}, [conversationId, userId]);
+    if (!conversationId || !userId) return;
+    supabase
+      .from('conversations')
+      .select('messages')
+      .eq('id', conversationId)
+      .eq('user_id', userId)
+      .single()
+      .then(({ data }) => {
+        if (data?.messages && Array.isArray(data.messages)) {
+          setMessages(data.messages);
+        }
+      });
+  }, [conversationId, userId]);
 
   const saveConversation = async (msgs) => {
     if (!userId || !conversationId || msgs.length === 0) return;
@@ -241,7 +240,6 @@ export default function ChatInterface({
     const text = input.trim();
     if (!text || loading || !isOnline) return;
 
-    // Délai minimum de 3 secondes entre les messages
     const now = Date.now();
     if (now - lastSendTime < 3000) return;
     setLastSendTime(now);
@@ -315,7 +313,6 @@ export default function ChatInterface({
       saveConversation(finalMessages);
 
     } catch (err) {
-      // Erreur silencieuse
       setLoading(false);
     }
   };
@@ -422,7 +419,6 @@ export default function ChatInterface({
         }} />
       )}
 
-      {/* ✅ Bandeau hors-ligne */}
       {!isOnline && (
         <div style={{
           padding: '8px 14px', textAlign: 'center', flexShrink: 0,
@@ -441,7 +437,6 @@ export default function ChatInterface({
 
       {headerContent}
 
-      {/* ✅ Bandeau d'erreur discret */}
       {error && (
         <div style={{
           padding: '8px 14px', textAlign: 'center', flexShrink: 0,
@@ -502,7 +497,13 @@ export default function ChatInterface({
                 <div style={{ fontSize: 14, lineHeight: 1.7, color: c.text, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                   <MarkdownContent content={msg.content} isDark={isDark} textColor={c.text} />
                   <div style={{ opacity: isMobile ? 1 : hoveredMsgId === msg.id ? 1 : 0, transition: 'opacity 0.2s', marginTop: 4 }}>
-                    <MessageActions content={msg.content} isDark={isDark} onRefresh={() => handleRefresh(msg.id)} />
+                    <MessageActions
+                      content={msg.content}
+                      isDark={isDark}
+                      userId={userId}
+                      messageId={msg.id}
+                      onRefresh={() => handleRefresh(msg.id)}
+                    />
                   </div>
                 </div>
               )}
@@ -522,8 +523,11 @@ export default function ChatInterface({
         )}
       </div>
 
+      {/* Barre de saisie */}
       <div style={{ padding: isMobile ? '6px 8px 8px' : '12px 16px 12px', flexShrink: 0, borderTop: `1px solid ${c.border}` }}>
         <div style={{ width: '100%', maxWidth: 720, margin: '0 auto', display: 'flex', alignItems: 'flex-end', gap: 6, background: c.inputBg, borderRadius: 18, border: `1.5px solid ${c.inputBorder}`, padding: '4px 4px 4px 8px' }}>
+          
+          {/* Bouton + */}
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <button onClick={() => setShowMenu(!showMenu)} style={{ width: 34, height: 34, borderRadius: 12, border: 'none', background: 'transparent', color: c.mute, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -541,19 +545,42 @@ export default function ChatInterface({
           <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} id="camera-upload" onChange={handleFile} />
           <input type="file" accept="image/*" style={{ display: 'none' }} id="gallery-upload" onChange={handleFile} />
 
+          {/* Zone de texte */}
           <textarea ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
             placeholder={placeholder} rows={1}
             style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', color: c.text, fontSize: 16, resize: 'none', maxHeight: 100, fontFamily: 'inherit', padding: '8px 0' }} />
 
+          {/* Micro */}
           <button onMouseDown={startRecording} onMouseUp={stopRecording} onTouchStart={startRecording} onTouchEnd={stopRecording}
             style={{ width: 34, height: 34, borderRadius: 12, border: 'none', background: isRecording ? '#ff4455' : 'transparent', color: isRecording ? 'white' : c.mute, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="1" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0014 0"/></svg>
           </button>
 
+          {/* Bouton Envoi avec animation */}
           <button onClick={handleSend} disabled={!input.trim() || loading || !isOnline}
-            style={{ width: 34, height: 34, borderRadius: 12, border: 'none', background: input.trim() && isOnline ? theme.accentGradient : 'transparent', color: input.trim() && isOnline ? 'white' : c.mute, cursor: input.trim() && isOnline ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: input.trim() && isOnline ? 1 : 0.4, boxShadow: input.trim() && isOnline ? `0 4px 14px ${theme.accent}40` : 'none' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
+            style={{
+              width: 34, height: 34, borderRadius: 12, border: 'none',
+              background: input.trim() && isOnline ? theme.accentGradient : 'transparent',
+              cursor: input.trim() && isOnline ? 'pointer' : 'not-allowed',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, opacity: input.trim() && isOnline ? 1 : 0.4,
+              boxShadow: input.trim() && isOnline ? `0 4px 14px ${theme.accent}40` : 'none',
+              transition: 'all 0.2s',
+            }}
+          >
+            {loading ? (
+              <div style={{
+                width: 14, height: 14, borderRadius: '50%',
+                border: '2px solid rgba(255,255,255,0.3)',
+                borderTopColor: 'white',
+                animation: 'spin 0.6s linear infinite',
+              }} />
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+              </svg>
+            )}
           </button>
         </div>
         <p style={{ textAlign: 'center', color: c.mute, fontSize: 9, marginTop: 5 }}>
@@ -569,6 +596,7 @@ export default function ChatInterface({
           50% { opacity: 0.4; }
           100% { background-position: 100% 50%; opacity: 0; }
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

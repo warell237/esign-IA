@@ -1,51 +1,48 @@
-
 import fs from 'fs';
 import path from 'path';
 
 // ============================================
-// Charger les connaissances depuis data/
+// Charger UNIQUEMENT les fichiers pertinents
 // ============================================
-function loadKnowledge(userData) {
+function loadRelevantKnowledge(userData, message) {
   const dataDir = path.join(process.cwd(), 'data');
+  const msg = (message || '').toLowerCase();
   let knowledge = '';
 
-  // Fichiers communs (toujours chargés)
-  const commonFiles = [
-    'ecole/infos.txt',
-    'business/strategies.txt',
-    'professeurs/contacts.txt',
-    'app/about.txt',
-    'matieres/N1/S1.txt'
-  ];
-
-  for (const file of commonFiles) {
+  // Toujours charger : école + app (très léger)
+  const always = ['ecole/infos.txt', 'app/about.txt'];
+  for (const file of always) {
     try {
-      const content = fs.readFileSync(path.join(dataDir, file), 'utf-8');
-      knowledge += `\n--- ${file} ---\n${content}\n`;
-    } catch (e) {
-      // Fichier non trouvé, ignoré
+      knowledge += fs.readFileSync(path.join(dataDir, file), 'utf-8') + '\n';
+    } catch (e) {}
+  }
+
+  // Charger les matières UNIQUEMENT si question sur les cours
+  const matiereKeywords = ['cours', 'matière', 'matiere', 'examen', 'exercice', 'qcm', 'programme', 'semestre', 'révision', 'revision', 'devoir', 'contrôle', 'controle', 'ue ', 'coefficient', 'crédit', 'credit'];
+  if (matiereKeywords.some(k => msg.includes(k))) {
+    const niveauMap = { 'L1': 'N1', 'L2': 'N2', 'L3': 'N3', 'Master 1': 'N4', 'Master 2': 'N5', 'M1': 'N4', 'M2': 'N5' };
+    const n = niveauMap[userData?.niveau] || 'N1';
+    for (const sem of ['S1', 'S2']) {
+      try {
+        knowledge += fs.readFileSync(path.join(dataDir, `matieres/${n}/${sem}.txt`), 'utf-8') + '\n';
+      } catch (e) {}
     }
   }
 
-  // Charger les matières selon le niveau de l'étudiant
-  if (userData?.niveau) {
-    const niveauMap = {
-      'L1': 'N1', 'L2': 'N2', 'L3': 'N3',
-      'Master 1': 'N4', 'Master 2': 'N5',
-      'M1': 'N4', 'M2': 'N5',
-    };
+  // Charger les profs UNIQUEMENT si question sur les professeurs
+  const profKeywords = ['prof', 'professeur', 'enseignant', 'contact', 'téléphone', 'telephone', 'email', 'bureau', 'chef de département'];
+  if (profKeywords.some(k => msg.includes(k))) {
+    try {
+      knowledge += fs.readFileSync(path.join(dataDir, 'professeurs/contacts.txt'), 'utf-8') + '\n';
+    } catch (e) {}
+  }
 
-    const n = niveauMap[userData.niveau] || 'N1';
-
-    for (const sem of ['S1', 'S2']) {
-      try {
-        const filePath = `matieres/${n}/${sem}.txt`;
-        const content = fs.readFileSync(path.join(dataDir, filePath), 'utf-8');
-        knowledge += `\n--- ${filePath} ---\n${content}\n`;
-      } catch (e) {
-        // Fichier non trouvé
-      }
-    }
+  // Charger business UNIQUEMENT si question business
+  const businessKeywords = ['business', 'argent', 'revenu', 'vendre', 'alibaba', 'freelance', 'gagner', 'client', 'marché', 'marche', 'import', 'export', 'boutique', 'e-commerce', 'whatsapp'];
+  if (businessKeywords.some(k => msg.includes(k))) {
+    try {
+      knowledge += fs.readFileSync(path.join(dataDir, 'business/strategies.txt'), 'utf-8') + '\n';
+    } catch (e) {}
   }
 
   return knowledge;
@@ -54,8 +51,8 @@ function loadKnowledge(userData) {
 // ============================================
 // Construire le prompt système selon le mode
 // ============================================
-export function buildSystemPrompt(mode, userData) {
-  const knowledge = loadKnowledge(userData);
+export function buildSystemPrompt(mode, userData, message = '') {
+  const knowledge = loadRelevantKnowledge(userData, message);
 
   const basePrompt = `Tu es ESIGN AI, l'assistant officiel de l'École Supérieure Internationale de Génie Numérique (ESIGN), située à Sangmélima au Cameroun, faisant partie de l'UIECC (Université Inter-États Congo-Cameroun).
 
@@ -83,7 +80,7 @@ Diplôme : Diplôme d'ingénieur de génie numérique, grade de Master.
 - Un groupe d'étudiants a créé une agence de community management pour les petites entreprises locales.
 - Certains étudiants importent des accessoires téléphones d'Alibaba et les revendent au marché de Sangmélima.
 - Un étudiant en ISN répare et formate des ordinateurs pour les particuliers et cybercafés.
-- Ghost (Tagne Wambo) et Dubuzz (wamba roolf) deux entrepreneurs de ESIGN ont lancé une formation sur l'importation des marchandises.
+- Ghost (Tagne Wambo) et Dubuzz (Wamba Roolf) deux entrepreneurs de ESIGN ont lancé une formation sur l'importation des marchandises.
 
 👨‍💻 À PROPOS DE L'APPLICATION :
 ESIGN AI a été développée par Empire Digital, une startup technologique fondée par un étudiant de ESIGN.
@@ -101,8 +98,8 @@ Si quelqu'un demande qui a créé cette application, réponds que c'est Empire D
 - Sois structuré, aéré et facile à lire, comme le ferait ChatGPT ou Claude.
 - Ne renvoie JAMAIS un seul bloc de texte sans mise en forme.
 
-📚 CONNAISSANCES SPÉCIFIQUES :
-${knowledge}
+📚 CONNAISSANCES SPÉCIFIQUES (chargées selon la question) :
+${knowledge || 'Aucune connaissance spécifique nécessaire pour cette question.'}
 
 Tu réponds en français. Tu es utile, précis, encourageant. Tu varies tes formulations.
 L'étudiant actuel est en ${userData?.filiere || 'non spécifié'}, niveau ${userData?.niveau || 'non spécifié'}.`;
@@ -172,16 +169,77 @@ Sois précis, organisé, factuel. Si tu ne sais pas, dis-le honnêtement.`,
 }
 
 // ============================================
-// Envoyer un message via Groq
+// Appeler Groq
 // ============================================
-export async function sendToGemini(message, mode, userData, history = []) {
-  const apiKey = process.env.GROQ_API_KEY;
+async function callGroq(messages) {
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'llama-3.1-8b-instant',
+      messages: messages,
+      temperature: 0.8,
+      max_tokens: 2048,
+    }),
+  });
 
-  if (!apiKey) {
-    throw new Error('Clé API Groq non configurée (GROQ_API_KEY)');
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error?.message || 'Erreur Groq');
   }
 
-  const systemPrompt = buildSystemPrompt(mode, userData);
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content;
+}
+
+// ============================================
+// Appeler Gemini
+// ============================================
+async function callGemini(messages) {
+  const systemMsg = messages.find(m => m.role === 'system');
+  const otherMsgs = messages.filter(m => m.role !== 'system');
+
+  const contents = [];
+  if (systemMsg) {
+    contents.push({ role: 'user', parts: [{ text: systemMsg.content }] });
+    contents.push({ role: 'model', parts: [{ text: 'Compris.' }] });
+  }
+  for (const msg of otherMsgs) {
+    contents.push({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }],
+    });
+  }
+
+  const response = await fetch(
+    `${process.env.GEMINI_API_URL}?key=${process.env.GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents,
+        generationConfig: { temperature: 0.8, maxOutputTokens: 2048 },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error?.message || 'Erreur Gemini');
+  }
+
+  const data = await response.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text;
+}
+
+// ============================================
+// Envoyer un message (rotation Groq → Gemini)
+// ============================================
+export async function sendToGemini(message, mode, userData, history = []) {
+  const systemPrompt = buildSystemPrompt(mode, userData, message);
 
   const messages = [
     { role: 'system', content: systemPrompt },
@@ -196,37 +254,23 @@ export async function sendToGemini(message, mode, userData, history = []) {
 
   messages.push({ role: 'user', content: message });
 
+  // Essayer Groq d'abord
   try {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
-        messages: messages,
-        temperature: 0.8,
-        max_tokens: 2048,
-        top_p: 0.9,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || 'Erreur API Groq');
-    }
-
-    const data = await response.json();
-    const replyText = data.choices?.[0]?.message?.content || 'Désolé, je n\'ai pas pu générer de réponse.';
-
+    const replyText = await callGroq(messages);
     return { success: true, reply: replyText };
-  } catch (error) {
-    console.error('Erreur Groq:', error);
-    return {
-      success: false,
-      error: error.message,
-      reply: 'Désolé, une erreur est survenue. Veuillez réessayer.',
-    };
+  } catch (groqError) {
+    console.error('Groq échoué, tentative Gemini:', groqError.message);
+    // Fallback sur Gemini
+    try {
+      const replyText = await callGemini(messages);
+      return { success: true, reply: replyText };
+    } catch (geminiError) {
+      console.error('Gemini échoué:', geminiError.message);
+      return {
+        success: false,
+        error: 'Tous les fournisseurs IA sont indisponibles.',
+        reply: 'Désolé, aucun service IA disponible. Réessaie dans quelques secondes.',
+      };
+    }
   }
 }

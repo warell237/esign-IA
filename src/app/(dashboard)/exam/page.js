@@ -18,17 +18,13 @@ export default function ExamPage() {
 
   const [selectedMatiere, setSelectedMatiere] = useState('');
   const [difficulty, setDifficulty] = useState('moyen');
+  const [matieres, setMatieres] = useState([]);
   const [stats, setStats] = useState({
     exercisesDone: 0,
     averageScore: 0,
     bestMatiere: '-',
   });
   const [loading, setLoading] = useState(true);
-
-  const matieres = [
-    'Mathematiques', 'Programmation', 'Reseaux',
-    'Base de donnees', 'Systemes embarques', 'Design UI/UX', 'Sociotechnique',
-  ];
 
   const difficulties = [
     { value: 'facile', label: 'Facile' },
@@ -39,9 +35,9 @@ export default function ExamPage() {
 
   const examSuggestions = [
     'Genere un exercice sur les pointeurs en C',
-    'QCM algorithmique niveau L2',
+    'QCM algorithmique',
     'Sujet type examen reseaux',
-    'Corrige ma reponse sur les boucles',
+    'Corrige ma reponse',
     'Exercice base de donnees SQL',
     'Probleme mathematiques discretes',
   ];
@@ -75,6 +71,37 @@ export default function ExamPage() {
         setLoading(false);
       });
   }, [user]);
+
+  // Charger les matières dynamiquement selon le niveau
+  useEffect(() => {
+    if (!userData?.niveau) return;
+
+    const niveauMap = { 'L1': 'N1', 'L2': 'N2', 'L3': 'N3', 'Master 1': 'N4', 'Master 2': 'N5', 'M1': 'N4', 'M2': 'N5' };
+    const n = niveauMap[userData.niveau] || 'N1';
+
+    // Charger les fichiers du niveau
+    const loadedMatieres = [];
+    
+    for (const sem of ['S1', 'S2']) {
+      fetch(`/data/matieres/${n}/${sem}.txt`)
+        .then(res => res.text())
+        .then(text => {
+          // Extraire les noms des matières (format: "1. NOM DE LA MATIERE" ou "1. NOM")
+          const lines = text.split('\n');
+          for (const line of lines) {
+            const match = line.match(/^\d+\.\s+(.+)/);
+            if (match && match[1].length > 3 && !match[1].startsWith('-')) {
+              const name = match[1].trim();
+              if (!loadedMatieres.includes(name)) {
+                loadedMatieres.push(name);
+              }
+            }
+          }
+          setMatieres([...loadedMatieres]);
+        })
+        .catch(() => {});
+    }
+  }, [userData?.niveau]);
 
   useEffect(() => {
     if (!bandeauRef.current) return;
@@ -128,7 +155,9 @@ export default function ExamPage() {
               }}
             >
               <option value="">Toutes les matieres</option>
-              {matieres.map(m => <option key={m} value={m}>{m}</option>)}
+              {matieres.length > 0 ? matieres.map(m => <option key={m} value={m}>{m}</option>) : (
+                <option disabled>Chargement...</option>
+              )}
             </select>
 
             <div style={{ display: 'flex', gap: 4 }}>

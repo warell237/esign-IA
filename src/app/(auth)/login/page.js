@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import SpaceBackground from '../../components/SpaceBackground';
 import { useTheme } from '../../providers';
+import { loginUser } from '../../lib/auth';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,30 +29,21 @@ export default function LoginPage() {
 
   if (!mounted) return null;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setError('');
 
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
+  const result = await loginUser(email, password);
 
-      if (data.success) {
-        router.push('/chat');
-      } else {
-        setError(data.error || 'Erreur de connexion');
-      }
-    } catch (err) {
-      setError('Erreur de connexion au serveur');
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (result.success) {
+    router.push('/chat');
+  } else {
+    setError(result.error || 'Erreur de connexion');
+  }
+  
+  setLoading(false);
+};
 
   const isDark = theme === 'dark';
 

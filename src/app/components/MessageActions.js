@@ -1,11 +1,27 @@
 'use client';
 
 import { useState } from 'react';
+import { supabase } from '../lib/supabase';
 
-export default function MessageActions({ content, onRefresh, isDark = true }) {
+export default function MessageActions({ content, onRefresh, isDark = true, userId, messageId }) {
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const saveRating = async (type, value) => {
+    if (!userId) return;
+    try {
+      await supabase.from('ratings').insert({
+        user_id: userId,
+        message_content: content,
+        rating: value,
+        type: type,
+        created_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      // Silencieux
+    }
+  };
 
   const handleCopy = async () => {
     try {
@@ -31,13 +47,23 @@ export default function MessageActions({ content, onRefresh, isDark = true }) {
   };
 
   const handleLike = () => {
-    setLiked(!liked);
-    if (disliked) setDisliked(false);
+    if (liked) {
+      setLiked(false);
+    } else {
+      setLiked(true);
+      if (disliked) setDisliked(false);
+      saveRating('like', 1);
+    }
   };
 
   const handleDislike = () => {
-    setDisliked(!disliked);
-    if (liked) setLiked(false);
+    if (disliked) {
+      setDisliked(false);
+    } else {
+      setDisliked(true);
+      if (liked) setLiked(false);
+      saveRating('dislike', 0);
+    }
   };
 
   const mutedColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
